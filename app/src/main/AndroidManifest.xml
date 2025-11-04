@@ -40,6 +40,22 @@
             android:name=".ui.profile.ProfileActivity"
             android:exported="false" />
 
+        <!-- Post Activities -->
+        <activity
+            android:name=".ui.post.CreatePostActivity"
+            android:exported="false"
+            android:parentActivityName=".ui.home.HomeActivity" />
+
+        <activity
+            android:name=".ui.post.PostDetailActivity"
+            android:exported="false"
+            android:parentActivityName=".ui.home.HomeActivity" />
+
+        <activity
+            android:name=".ui.post.EditPostActivity"
+            android:exported="false"
+            android:parentActivityName=".ui.post.PostDetailActivity" />
+
         <!-- Main Activity (not used as launcher) -->
         <activity
             android:name=".MainActivity"
