@@ -156,7 +156,6 @@ public class PostRepository {
     public void getPostsByAuthor(String authorId, PostListCallback callback) {
         db.collection(COLLECTION_POSTS)
                 .whereEqualTo("authorId", authorId)
-                .orderBy("createdAt", Query.Direction.DESCENDING)
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     List<Post> posts = new ArrayList<>();
@@ -164,6 +163,15 @@ public class PostRepository {
                         Post post = document.toObject(Post.class);
                         posts.add(post);
                     }
+                    
+                    // Sort by creation date in memory to avoid composite index requirement
+                    posts.sort((p1, p2) -> {
+                        if (p1.getCreatedAt() == null && p2.getCreatedAt() == null) return 0;
+                        if (p1.getCreatedAt() == null) return 1;
+                        if (p2.getCreatedAt() == null) return -1;
+                        return p2.getCreatedAt().compareTo(p1.getCreatedAt());
+                    });
+                    
                     Log.d(TAG, "Fetched " + posts.size() + " posts for author: " + authorId);
                     callback.onSuccess(posts);
                 })
@@ -201,7 +209,6 @@ public class PostRepository {
     public void getPostsByTag(String tag, PostListCallback callback) {
         db.collection(COLLECTION_POSTS)
                 .whereArrayContains("tags", tag)
-                .orderBy("createdAt", Query.Direction.DESCENDING)
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     List<Post> posts = new ArrayList<>();
@@ -209,6 +216,15 @@ public class PostRepository {
                         Post post = document.toObject(Post.class);
                         posts.add(post);
                     }
+                    
+                    // Sort by creation date in memory to avoid composite index requirement
+                    posts.sort((p1, p2) -> {
+                        if (p1.getCreatedAt() == null && p2.getCreatedAt() == null) return 0;
+                        if (p1.getCreatedAt() == null) return 1;
+                        if (p2.getCreatedAt() == null) return -1;
+                        return p2.getCreatedAt().compareTo(p1.getCreatedAt());
+                    });
+                    
                     Log.d(TAG, "Fetched " + posts.size() + " posts with tag: " + tag);
                     callback.onSuccess(posts);
                 })
@@ -223,8 +239,6 @@ public class PostRepository {
      */
     public void getAllPostsByVotes(PostListCallback callback) {
         db.collection(COLLECTION_POSTS)
-                .orderBy("upvotes", Query.Direction.DESCENDING)
-                .orderBy("createdAt", Query.Direction.DESCENDING) // Secondary sort by date
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     List<Post> posts = new ArrayList<>();
@@ -232,6 +246,22 @@ public class PostRepository {
                         Post post = document.toObject(Post.class);
                         posts.add(post);
                     }
+                    
+                    // Sort by votes then by creation date in memory
+                    posts.sort((p1, p2) -> {
+                        // First compare by net votes (upvotes - downvotes)
+                        int voteComparison = Integer.compare(p2.getNetVotes(), p1.getNetVotes());
+                        if (voteComparison != 0) {
+                            return voteComparison;
+                        }
+                        
+                        // If votes are equal, sort by creation date (most recent first)
+                        if (p1.getCreatedAt() == null && p2.getCreatedAt() == null) return 0;
+                        if (p1.getCreatedAt() == null) return 1;
+                        if (p2.getCreatedAt() == null) return -1;
+                        return p2.getCreatedAt().compareTo(p1.getCreatedAt());
+                    });
+                    
                     Log.d(TAG, "Fetched " + posts.size() + " posts sorted by votes");
                     callback.onSuccess(posts);
                 })
