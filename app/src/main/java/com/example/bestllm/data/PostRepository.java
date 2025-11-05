@@ -217,5 +217,149 @@ public class PostRepository {
                     callback.onError("Failed to fetch posts: " + e.getMessage());
                 });
     }
+
+    /**
+     * Get all posts ordered by most upvotes (for sorting)
+     */
+    public void getAllPostsByVotes(PostListCallback callback) {
+        db.collection(COLLECTION_POSTS)
+                .orderBy("upvotes", Query.Direction.DESCENDING)
+                .orderBy("createdAt", Query.Direction.DESCENDING) // Secondary sort by date
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    List<Post> posts = new ArrayList<>();
+                    for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
+                        Post post = document.toObject(Post.class);
+                        posts.add(post);
+                    }
+                    Log.d(TAG, "Fetched " + posts.size() + " posts sorted by votes");
+                    callback.onSuccess(posts);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error fetching posts by votes", e);
+                    callback.onError("Failed to fetch posts: " + e.getMessage());
+                });
+    }
+
+    /**
+     * Search posts by title or body content
+     */
+    public void searchPosts(String searchQuery, PostListCallback callback) {
+        if (searchQuery == null || searchQuery.trim().isEmpty()) {
+            getAllPostsRecent(callback);
+            return;
+        }
+
+        String query = searchQuery.trim().toLowerCase();
+        
+        // Note: Firestore doesn't support full-text search natively
+        // This is a basic implementation that gets all posts and filters locally
+        // For production, consider using Algolia or similar search service
+        db.collection(COLLECTION_POSTS)
+                .orderBy("createdAt", Query.Direction.DESCENDING)
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    List<Post> posts = new ArrayList<>();
+                    for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
+                        Post post = document.toObject(Post.class);
+                        
+                        // Check if title or body contains search query
+                        boolean titleMatch = post.getTitle() != null &&
+                                post.getTitle().toLowerCase().contains(query);
+                        boolean bodyMatch = post.getBody() != null &&
+                                post.getBody().toLowerCase().contains(query);
+                        
+                        if (titleMatch || bodyMatch) {
+                            posts.add(post);
+                        }
+                    }
+                    Log.d(TAG, "Found " + posts.size() + " posts matching query: " + searchQuery);
+                    callback.onSuccess(posts);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error searching posts", e);
+                    callback.onError("Failed to search posts: " + e.getMessage());
+                });
+    }
+
+    /**
+     * Search posts by title, body, or tags
+     */
+    public void searchPostsWithTags(String searchQuery, PostListCallback callback) {
+        if (searchQuery == null || searchQuery.trim().isEmpty()) {
+            getAllPostsRecent(callback);
+            return;
+        }
+
+        String query = searchQuery.trim().toLowerCase();
+        
+        db.collection(COLLECTION_POSTS)
+                .orderBy("createdAt", Query.Direction.DESCENDING)
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    List<Post> posts = new ArrayList<>();
+                    for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
+                        Post post = document.toObject(Post.class);
+                        
+                        // Check if title, body, or tags contain search query
+                        boolean titleMatch = post.getTitle() != null &&
+                                post.getTitle().toLowerCase().contains(query);
+                        boolean bodyMatch = post.getBody() != null &&
+                                post.getBody().toLowerCase().contains(query);
+                        
+                        boolean tagMatch = false;
+                        if (post.getTags() != null) {
+                            for (String tag : post.getTags()) {
+                                if (tag.toLowerCase().contains(query)) {
+                                    tagMatch = true;
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        if (titleMatch || bodyMatch || tagMatch) {
+                            posts.add(post);
+                        }
+                    }
+                    Log.d(TAG, "Found " + posts.size() + " posts matching query with tags: " + searchQuery);
+                    callback.onSuccess(posts);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error searching posts with tags", e);
+                    callback.onError("Failed to search posts: " + e.getMessage());
+                });
+    }
+
+    /**
+     * Get all unique tags from posts
+     */
+    public void getAllTags(TagListCallback callback) {
+        db.collection(COLLECTION_POSTS)
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    List<String> allTags = new ArrayList<>();
+                    for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
+                        Post post = document.toObject(Post.class);
+                        if (post.getTags() != null) {
+                            for (String tag : post.getTags()) {
+                                if (!allTags.contains(tag)) {
+                                    allTags.add(tag);
+                                }
+                            }
+                        }
+                    }
+                    Log.d(TAG, "Found " + allTags.size() + " unique tags");
+                    callback.onSuccess(allTags);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error fetching tags", e);
+                    callback.onError("Failed to fetch tags: " + e.getMessage());
+                });
+    }
+
+    public interface TagListCallback {
+        void onSuccess(List<String> tags);
+        void onError(String error);
+    }
 }
 

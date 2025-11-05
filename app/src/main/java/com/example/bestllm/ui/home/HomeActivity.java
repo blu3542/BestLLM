@@ -2,6 +2,9 @@ package com.example.bestllm.ui.home;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -9,13 +12,19 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
+import com.google.android.material.button.MaterialButton;
+import com.google.android.material.button.MaterialButtonToggleGroup;
+import com.google.android.material.chip.Chip;
+import com.google.android.material.chip.ChipGroup;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.textfield.TextInputEditText;
 import com.example.bestllm.R;
 import com.example.bestllm.data.AuthRepository;
 import com.example.bestllm.data.PostRepository;
@@ -39,10 +48,23 @@ public class HomeActivity extends AppCompatActivity implements PostAdapter.OnPos
     private TextView textViewEmpty;
     private SwipeRefreshLayout swipeRefreshLayout;
     private FloatingActionButton fabCreatePost;
+    
+    // Search and filter UI elements
+    private TextInputEditText editTextSearch;
+    private MaterialButtonToggleGroup toggleGroupSort;
+    private MaterialButton buttonSortRecent;
+    private MaterialButton buttonSortVotes;
+    private MaterialButton buttonFilterTags;
 
     private PostRepository postRepository;
     private AuthRepository authRepository;
     private SessionManager sessionManager;
+    
+    // Filter state
+    private String currentSearchQuery = "";
+    private boolean sortByVotes = false;
+    private List<String> selectedTags = new ArrayList<>();
+    private List<String> allTags = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -74,6 +96,16 @@ public class HomeActivity extends AppCompatActivity implements PostAdapter.OnPos
         textViewEmpty = findViewById(R.id.textViewEmpty);
         swipeRefreshLayout = findViewById(R.id.swipeRefreshLayout);
         fabCreatePost = findViewById(R.id.fabCreatePost);
+        
+        // Search and filter UI elements
+        editTextSearch = findViewById(R.id.editTextSearch);
+        toggleGroupSort = findViewById(R.id.toggleGroupSort);
+        buttonSortRecent = findViewById(R.id.buttonSortRecent);
+        buttonSortVotes = findViewById(R.id.buttonSortVotes);
+        buttonFilterTags = findViewById(R.id.buttonFilterTags);
+        
+        // Set default sort option
+        toggleGroupSort.check(R.id.buttonSortRecent);
     }
 
     private void setupRecyclerView() {
@@ -89,19 +121,56 @@ public class HomeActivity extends AppCompatActivity implements PostAdapter.OnPos
         });
 
         swipeRefreshLayout.setOnRefreshListener(this::loadPosts);
+        
+        // Search functionality
+        editTextSearch.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {}
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                currentSearchQuery = s.toString();
+                performSearch();
+            }
+        });
+        
+        // Sort functionality
+        toggleGroupSort.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
+            if (isChecked) {
+                sortByVotes = (checkedId == R.id.buttonSortVotes);
+                loadPosts();
+            }
+        });
+        
+        // Tag filter functionality
+        buttonFilterTags.setOnClickListener(v -> showTagFilterDialog());
+        
+        // Load all tags for filtering
+        loadAllTags();
     }
 
     private void loadPosts() {
         showLoading(true);
 
-        postRepository.getAllPostsRecent(new PostRepository.PostListCallback() {
+        PostRepository.PostListCallback callback = new PostRepository.PostListCallback() {
             @Override
             public void onSuccess(List<Post> posts) {
                 showLoading(false);
                 swipeRefreshLayout.setRefreshing(false);
-                postAdapter.updatePosts(posts);
                 
-                if (posts.isEmpty()) {
+                // Apply tag filtering if any tags are selected
+                List<Post> filteredPosts = filterPostsByTags(posts);
+                
+                postAdapter.updatePosts(filteredPosts);
+                
+                if (filteredPosts.isEmpty()) {
+                    String emptyMessage = selectedTags.isEmpty() && currentSearchQuery.isEmpty()
+                            ? "No posts yet.\nBe the first to create one!"
+                            : "No posts match your search criteria.";
+                    textViewEmpty.setText(emptyMessage);
                     textViewEmpty.setVisibility(View.VISIBLE);
                     recyclerViewPosts.setVisibility(View.GONE);
                 } else {
@@ -116,7 +185,120 @@ public class HomeActivity extends AppCompatActivity implements PostAdapter.OnPos
                 swipeRefreshLayout.setRefreshing(false);
                 Toast.makeText(HomeActivity.this, error, Toast.LENGTH_LONG).show();
             }
+        };
+
+        // Determine which method to call based on current state
+        if (!currentSearchQuery.isEmpty()) {
+            // Search mode
+            postRepository.searchPostsWithTags(currentSearchQuery, callback);
+        } else if (sortByVotes) {
+            // Sort by votes
+            postRepository.getAllPostsByVotes(callback);
+        } else {
+            // Default: sort by recent
+            postRepository.getAllPostsRecent(callback);
+        }
+    }
+
+    private void performSearch() {
+        // Debounce search to avoid too many queries
+        if (currentSearchQuery.length() >= 2 || currentSearchQuery.isEmpty()) {
+            loadPosts();
+        }
+    }
+
+    private List<Post> filterPostsByTags(List<Post> posts) {
+        if (selectedTags.isEmpty()) {
+            return posts;
+        }
+
+        List<Post> filteredPosts = new ArrayList<>();
+        for (Post post : posts) {
+            if (post.getTags() != null) {
+                boolean hasMatchingTag = false;
+                for (String selectedTag : selectedTags) {
+                    if (post.getTags().contains(selectedTag)) {
+                        hasMatchingTag = true;
+                        break;
+                    }
+                }
+                if (hasMatchingTag) {
+                    filteredPosts.add(post);
+                }
+            }
+        }
+        return filteredPosts;
+    }
+
+    private void loadAllTags() {
+        postRepository.getAllTags(new PostRepository.TagListCallback() {
+            @Override
+            public void onSuccess(List<String> tags) {
+                allTags.clear();
+                allTags.addAll(tags);
+            }
+
+            @Override
+            public void onError(String error) {
+                // Silently fail for tags loading
+            }
         });
+    }
+
+    private void showTagFilterDialog() {
+        if (allTags.isEmpty()) {
+            Toast.makeText(this, "No tags available", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_tag_filter, null);
+        ChipGroup chipGroupFilterTags = dialogView.findViewById(R.id.chipGroupFilterTags);
+        MaterialButton buttonClearFilter = dialogView.findViewById(R.id.buttonClearFilter);
+        MaterialButton buttonApplyFilter = dialogView.findViewById(R.id.buttonApplyFilter);
+
+        // Add chips for all tags
+        chipGroupFilterTags.removeAllViews();
+        for (String tag : allTags) {
+            Chip chip = new Chip(this);
+            chip.setText(tag);
+            chip.setCheckable(true);
+            chip.setChecked(selectedTags.contains(tag));
+            chipGroupFilterTags.addView(chip);
+        }
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setView(dialogView)
+                .create();
+
+        buttonClearFilter.setOnClickListener(v -> {
+            selectedTags.clear();
+            updateFilterButtonText();
+            loadPosts();
+            dialog.dismiss();
+        });
+
+        buttonApplyFilter.setOnClickListener(v -> {
+            selectedTags.clear();
+            for (int i = 0; i < chipGroupFilterTags.getChildCount(); i++) {
+                Chip chip = (Chip) chipGroupFilterTags.getChildAt(i);
+                if (chip.isChecked()) {
+                    selectedTags.add(chip.getText().toString());
+                }
+            }
+            updateFilterButtonText();
+            loadPosts();
+            dialog.dismiss();
+        });
+
+        dialog.show();
+    }
+
+    private void updateFilterButtonText() {
+        if (selectedTags.isEmpty()) {
+            buttonFilterTags.setText("Filter by Tag");
+        } else {
+            buttonFilterTags.setText("Filtered (" + selectedTags.size() + ")");
+        }
     }
 
     private void showLoading(boolean show) {
