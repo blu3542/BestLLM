@@ -251,8 +251,7 @@ public class HomeActivity extends AppCompatActivity implements PostAdapter.OnPos
             return;
         }
 
-//        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_tag_filter, null);
-        View dialogView = findViewById(android.R.id.content);
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_tag_filter, null);
         ChipGroup chipGroupFilterTags = dialogView.findViewById(R.id.chipGroupFilterTags);
         MaterialButton buttonClearFilter = dialogView.findViewById(R.id.buttonClearFilter);
         MaterialButton buttonApplyFilter = dialogView.findViewById(R.id.buttonApplyFilter);
