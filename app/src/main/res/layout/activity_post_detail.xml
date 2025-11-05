@@ -141,6 +141,68 @@
 
             </LinearLayout>
 
+            <!-- Vote Actions for the POST -->
+            <LinearLayout
+                android:id="@+id/layoutVoteActions"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="end"
+                android:paddingTop="8dp">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnUpvote"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Upvote"
+                    app:icon="@android:drawable/arrow_up_float"/>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnDownvote"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:text="Downvote"
+                    app:icon="@android:drawable/arrow_down_float"/>
+            </LinearLayout>
+
+            <!-- Comments header -->
+            <TextView
+                android:id="@+id/textCommentsHeader"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Comments"
+                android:textStyle="bold"
+                android:textSize="16sp"
+                android:layout_marginTop="16dp"/>
+
+            <!-- Comments list -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recyclerComments"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false" />
+
+            <!-- Comment composer -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/editCommentBody"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Write a comment" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSubmitComment"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Post comment"
+                android:layout_gravity="end"/>
+
         </LinearLayout>
 
     </androidx.core.widget.NestedScrollView>

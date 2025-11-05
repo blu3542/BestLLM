@@ -100,6 +100,40 @@
 
             </LinearLayout>
 
+            <!-- ⬇️ Added block: Tag Filter UI (hidden by default) -->
+            <LinearLayout
+                android:id="@+id/layoutTagFilter"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp"
+                android:visibility="gone">
+
+                <com.google.android.material.chip.ChipGroup
+                    android:id="@+id/chipGroupFilterTags"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:singleSelection="false"
+                    app:singleLine="false"
+                    app:chipSpacingHorizontal="8dp"
+                    app:chipSpacingVertical="8dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/buttonClearFilter"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="Clear" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/buttonApplyFilter"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="Apply" />
+            </LinearLayout>
+            <!-- ⬆️ End of added block -->
+
         </LinearLayout>
 
     </com.google.android.material.appbar.AppBarLayout>

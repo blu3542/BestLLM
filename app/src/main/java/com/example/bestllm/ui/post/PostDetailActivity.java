@@ -9,6 +9,18 @@ import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
+// NEW: repos, adapter, widgets
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
+import com.google.android.material.button.MaterialButton;
+import com.google.android.material.textfield.TextInputEditText;
+
+import com.example.bestllm.data.CommentRepository;
+import com.example.bestllm.data.VoteRepository;
+import com.example.bestllm.models.Comment;
+import com.example.bestllm.ui.post.CommentAdapter; // or com.example.bestllm.adapters.CommentAdapter if you moved it
+
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
@@ -38,6 +50,31 @@ public class PostDetailActivity extends AppCompatActivity {
     private SessionManager sessionManager;
     private Post currentPost;
 
+    // NEW: Workstream-3 state
+    private String postId;                       // set in loadPost()
+    private VoteRepository voteRepo;
+    private CommentRepository commentRepo;
+
+    // NEW: Comments UI
+    private RecyclerView recyclerComments;
+    private CommentAdapter commentAdapter;
+    private MaterialButton btnUpvote, btnDownvote, btnSubmitComment;
+    private TextInputEditText editCommentBody;
+
+
+//    @Override
+//    protected void onCreate(Bundle savedInstanceState) {
+//        super.onCreate(savedInstanceState);
+//        setContentView(R.layout.activity_post_detail);
+//
+//        postRepository = new PostRepository();
+//        sessionManager = new SessionManager(this);
+//
+//        setupToolbar();
+//        initViews();
+//        loadPost();
+//    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -46,10 +83,15 @@ public class PostDetailActivity extends AppCompatActivity {
         postRepository = new PostRepository();
         sessionManager = new SessionManager(this);
 
+        // NEW: init repos
+        voteRepo = new VoteRepository();
+        commentRepo = new CommentRepository();
+
         setupToolbar();
-        initViews();
-        loadPost();
+        initViews();   // (we’ll hook up new views inside initViews)
+        loadPost();    // (we’ll set postId here and then wire listeners)
     }
+
 
     private void setupToolbar() {
         Toolbar toolbar = findViewById(R.id.toolbar);
@@ -59,6 +101,18 @@ public class PostDetailActivity extends AppCompatActivity {
             getSupportActionBar().setTitle("Post Details");
         }
     }
+
+//    private void initViews() {
+//        textViewTitle = findViewById(R.id.textViewTitle);
+//        textViewBody = findViewById(R.id.textViewBody);
+//        textViewAuthor = findViewById(R.id.textViewAuthor);
+//        textViewDate = findViewById(R.id.textViewDate);
+//        textViewVotes = findViewById(R.id.textViewVotes);
+//        textViewComments = findViewById(R.id.textViewComments);
+//        chipGroupTags = findViewById(R.id.chipGroupTags);
+//        progressBar = findViewById(R.id.progressBar);
+//        layoutContent = findViewById(R.id.layoutContent);
+//    }
 
     private void initViews() {
         textViewTitle = findViewById(R.id.textViewTitle);
@@ -70,15 +124,65 @@ public class PostDetailActivity extends AppCompatActivity {
         chipGroupTags = findViewById(R.id.chipGroupTags);
         progressBar = findViewById(R.id.progressBar);
         layoutContent = findViewById(R.id.layoutContent);
+
+        // NEW: comments + vote controls
+        recyclerComments  = findViewById(R.id.recyclerComments);
+        btnUpvote         = findViewById(R.id.btnUpvote);
+        btnDownvote       = findViewById(R.id.btnDownvote);
+        btnSubmitComment  = findViewById(R.id.btnSubmitComment);
+        editCommentBody   = findViewById(R.id.editCommentBody);
+
+        if (recyclerComments != null) {
+            recyclerComments.setLayoutManager(new LinearLayoutManager(this));
+            commentAdapter = new CommentAdapter((c, value) -> {
+                if (!ensureReadyForVoting()) return;
+                voteRepo.voteComment(postId, c.getCommentId(), currentUserId(), value,
+                        new VoteRepository.VoidCallback() {
+                            @Override public void onSuccess() { refreshComments(); }
+                            @Override public void onError(String e) { Toast.makeText(PostDetailActivity.this, e, Toast.LENGTH_SHORT).show(); }
+                        });
+            });
+            recyclerComments.setAdapter(commentAdapter);
+        }
     }
 
+
+//    private void loadPost() {
+//        String postId = getIntent().getStringExtra(EXTRA_POST_ID);
+//        if (postId == null) {
+//            Toast.makeText(this, "Invalid post ID", Toast.LENGTH_SHORT).show();
+//            finish();
+//            return;
+//        }
+//
+//        showLoading(true);
+//
+//        postRepository.getPost(postId, new PostRepository.PostCallback() {
+//            @Override
+//            public void onSuccess(Post post) {
+//                showLoading(false);
+//                currentPost = post;
+//                displayPost(post);
+//                invalidateOptionsMenu(); // Refresh menu to show/hide edit/delete
+//            }
+//
+//            @Override
+//            public void onError(String error) {
+//                showLoading(false);
+//                Toast.makeText(PostDetailActivity.this, error, Toast.LENGTH_LONG).show();
+//                finish();
+//            }
+//        });
+//    }
     private void loadPost() {
-        String postId = getIntent().getStringExtra(EXTRA_POST_ID);
-        if (postId == null) {
+        String idFromIntent = getIntent().getStringExtra(EXTRA_POST_ID);
+        if (idFromIntent == null) {
             Toast.makeText(this, "Invalid post ID", Toast.LENGTH_SHORT).show();
             finish();
             return;
         }
+        // NEW: cache it for voting/comment calls
+        postId = idFromIntent;
 
         showLoading(true);
 
@@ -88,7 +192,11 @@ public class PostDetailActivity extends AppCompatActivity {
                 showLoading(false);
                 currentPost = post;
                 displayPost(post);
-                invalidateOptionsMenu(); // Refresh menu to show/hide edit/delete
+                invalidateOptionsMenu();
+
+                // NEW: now that postId/currentPost are valid, wire the click listeners
+                setupVotingAndCommentsUi();   // sets button listeners
+                refreshComments();            // loads comments list
             }
 
             @Override
@@ -99,6 +207,7 @@ public class PostDetailActivity extends AppCompatActivity {
             }
         });
     }
+
 
     private void displayPost(Post post) {
         textViewTitle.setText(post.getTitle());
@@ -130,6 +239,107 @@ public class PostDetailActivity extends AppCompatActivity {
                 chipGroupTags.addView(chip);
             }
         }
+    }
+
+    // NEW: set button listeners after post is loaded
+    private void setupVotingAndCommentsUi() {
+        if (btnUpvote != null) {
+            btnUpvote.setOnClickListener(v -> {
+                if (!ensureReadyForVoting()) return;
+                voteRepo.votePost(postId, currentUserId(), 1, cbRefreshPost());
+            });
+        }
+        if (btnDownvote != null) {
+            btnDownvote.setOnClickListener(v -> {
+                if (!ensureReadyForVoting()) return;
+                voteRepo.votePost(postId, currentUserId(), -1, cbRefreshPost());
+            });
+        }
+        if (btnSubmitComment != null) {
+            btnSubmitComment.setOnClickListener(v -> {
+                String body = String.valueOf(editCommentBody.getText()).trim();
+                if (body.isEmpty()) {
+                    Toast.makeText(this, "Comment cannot be empty", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                if (!ensureReadyForVoting()) return;
+                commentRepo.addComment(postId, currentUserId(), currentUserName(), null, body,
+                        new CommentRepository.CommentCallback() {
+                            @Override public void onSuccess(Comment c) {
+                                editCommentBody.setText("");
+                                refreshComments();
+                                // We already have currentPost; if you want to re-fetch for counts:
+                                refreshPost();
+                            }
+                            @Override public void onError(String e) {
+                                Toast.makeText(PostDetailActivity.this, e, Toast.LENGTH_SHORT).show();
+                            }
+                        });
+            });
+        }
+    }
+
+    // NEW: defensively refresh post (if you have a repository call for a single post)
+    private void refreshPost() {
+        if (postId == null) return;
+        postRepository.getPost(postId, new PostRepository.PostCallback() {
+            @Override public void onSuccess(Post post) {
+                currentPost = post;
+                displayPost(post);
+            }
+            @Override public void onError(String error) {
+                // optional: Toast or ignore
+            }
+        });
+    }
+
+    // NEW: load comments list
+    private void refreshComments() {
+        if (postId == null || recyclerComments == null || commentAdapter == null) return;
+        commentRepo.getCommentsForPost(postId, new CommentRepository.CommentListCallback() {
+            @Override public void onSuccess(java.util.List<Comment> list) {
+                commentAdapter.submit(list);
+            }
+            @Override public void onError(String e) {
+                Toast.makeText(PostDetailActivity.this, e, Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    // NEW: simple guards to prevent crashes on null ids
+    private boolean ensureReadyForVoting() {
+        if (postId == null || postId.trim().isEmpty()) {
+            Toast.makeText(this, "Missing post", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+        String uid = currentUserId();
+        if (uid == null || uid.trim().isEmpty()) {
+            Toast.makeText(this, "Please sign in", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+        return true;
+    }
+
+
+
+    private VoteRepository.VoidCallback cbRefreshPost() {
+        return new VoteRepository.VoidCallback() {
+            @Override public void onSuccess() { refreshPost(); }
+            @Override public void onError(String e) { Toast.makeText(PostDetailActivity.this, e, Toast.LENGTH_SHORT).show(); }
+        };
+    }
+
+    // If your app uses FirebaseAuth directly, you can swap to FirebaseAuth.getInstance().getUid().
+//    private String currentUserId() {
+//        return sessionManager != null ? sessionManager.getUserId() : null;
+//    }
+    private String currentUserId() {
+        return com.google.firebase.auth.FirebaseAuth.getInstance().getUid();
+    }
+
+    private String currentUserName() {
+        String name = sessionManager != null ? sessionManager.getUserName() : null;
+        return (name != null && !name.isEmpty()) ? name : "You";
     }
 
     private void showLoading(boolean show) {
