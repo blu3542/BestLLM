@@ -1,5 +1,4 @@
 package com.example.bestllm.models;
-
 import com.google.firebase.Timestamp;
 import java.util.ArrayList;
 import java.util.List;

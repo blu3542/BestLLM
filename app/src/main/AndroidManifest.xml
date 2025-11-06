@@ -56,6 +56,22 @@
             android:exported="false"
             android:parentActivityName=".ui.post.PostDetailActivity" />
 
+        <!-- Prompt Sharing Activities -->
+        <activity
+            android:name=".ui.prompt.PromptListActivity"
+            android:exported="false"
+            android:parentActivityName=".ui.home.HomeActivity" />
+
+        <activity
+            android:name=".ui.prompt.CreatePromptActivity"
+            android:exported="false"
+            android:parentActivityName=".ui.prompt.PromptListActivity" />
+
+        <activity
+            android:name=".ui.prompt.EditPromptActivity"
+            android:exported="false"
+            android:parentActivityName=".ui.prompt.PromptListActivity" />
+
         <!-- Main Activity (not used as launcher) -->
         <activity
             android:name=".MainActivity"

@@ -18,5 +18,12 @@
         android:title="Logout"
         app:showAsAction="never" />
 
+    <item
+        android:id="@+id/action_open_prompts"
+        android:title="Prompt_Sharing"
+        android:icon="@android:drawable/ic_menu_edit"
+        app:showAsAction="ifRoom" />
+
+
 </menu>
 

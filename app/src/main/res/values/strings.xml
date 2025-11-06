@@ -1,3 +1,12 @@
 <resources>
     <string name="app_name">BestLLM</string>
+    <string name="share_prompt">Share Prompt</string>
+    <string name="prompt_hint">Paste or write your LLM prompt here…</string>
+    <string name="tags_hint">Tags (comma-separated, optional)</string>
+    <string name="post_prompt">Post Prompt</string>
+    <string name="save">Save</string>
+    <string name="cancel">Cancel</string>
+    <string name="share">Share</string>
+    <string name="edit">Edit</string>
+    <string name="delete">Delete</string>
 </resources>

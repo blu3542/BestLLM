@@ -333,6 +333,9 @@ public class HomeActivity extends AppCompatActivity implements PostAdapter.OnPos
         } else if (id == R.id.action_logout) {
             handleLogout();
             return true;
+        } else if (id == R.id.action_open_prompts) {
+            startActivity(new Intent(this, com.example.bestllm.ui.prompt.PromptListActivity.class));
+            return true;
         }
 
         return super.onOptionsItemSelected(item);
