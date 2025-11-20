@@ -9,4 +9,11 @@
     <string name="share">Share</string>
     <string name="edit">Edit</string>
     <string name="delete">Delete</string>
+    <string name="search_hint">Search posts…</string>
+    <string-array name="search_modes">
+        <item>Full text</item>
+        <item>Tag</item>
+        <item>Author</item>
+        <item>Title</item>
+    </string-array>
 </resources>

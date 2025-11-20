@@ -25,6 +25,12 @@
             android:background="?attr/colorSurfaceContainer"
             android:padding="16dp">
 
+            <Spinner
+                android:id="@+id/spinnerSearchMode"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp" />
+
             <!-- Search Bar -->
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"

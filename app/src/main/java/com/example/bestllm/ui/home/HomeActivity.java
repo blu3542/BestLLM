@@ -11,6 +11,9 @@ import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.Spinner;
+import android.widget.ArrayAdapter;
+import android.widget.AdapterView;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
@@ -48,23 +51,33 @@ public class HomeActivity extends AppCompatActivity implements PostAdapter.OnPos
     private TextView textViewEmpty;
     private SwipeRefreshLayout swipeRefreshLayout;
     private FloatingActionButton fabCreatePost;
-    
+
+    // Search mode enum
+    private enum SearchMode {
+        FULL_TEXT,
+        TAG,
+        AUTHOR,
+        TITLE
+    }
+
     // Search and filter UI elements
     private TextInputEditText editTextSearch;
     private MaterialButtonToggleGroup toggleGroupSort;
     private MaterialButton buttonSortRecent;
     private MaterialButton buttonSortVotes;
     private MaterialButton buttonFilterTags;
+    private Spinner spinnerSearchMode;
 
     private PostRepository postRepository;
     private AuthRepository authRepository;
     private SessionManager sessionManager;
-    
+
     // Filter state
     private String currentSearchQuery = "";
     private boolean sortByVotes = false;
     private List<String> selectedTags = new ArrayList<>();
     private List<String> allTags = new ArrayList<>();
+    private SearchMode currentSearchMode = SearchMode.FULL_TEXT;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -96,16 +109,29 @@ public class HomeActivity extends AppCompatActivity implements PostAdapter.OnPos
         textViewEmpty = findViewById(R.id.textViewEmpty);
         swipeRefreshLayout = findViewById(R.id.swipeRefreshLayout);
         fabCreatePost = findViewById(R.id.fabCreatePost);
-        
+
         // Search and filter UI elements
         editTextSearch = findViewById(R.id.editTextSearch);
         toggleGroupSort = findViewById(R.id.toggleGroupSort);
         buttonSortRecent = findViewById(R.id.buttonSortRecent);
         buttonSortVotes = findViewById(R.id.buttonSortVotes);
         buttonFilterTags = findViewById(R.id.buttonFilterTags);
-        
+        spinnerSearchMode = findViewById(R.id.spinnerSearchMode);
+
         // Set default sort option
         toggleGroupSort.check(R.id.buttonSortRecent);
+
+        // Setup search mode spinner
+        if (spinnerSearchMode != null) {
+            ArrayAdapter<CharSequence> searchModeAdapter = ArrayAdapter.createFromResource(
+                    this,
+                    R.array.search_modes,
+                    android.R.layout.simple_spinner_item
+            );
+            searchModeAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+            spinnerSearchMode.setAdapter(searchModeAdapter);
+            spinnerSearchMode.setSelection(0);
+        }
     }
 
     private void setupRecyclerView() {
@@ -121,7 +147,7 @@ public class HomeActivity extends AppCompatActivity implements PostAdapter.OnPos
         });
 
         swipeRefreshLayout.setOnRefreshListener(this::loadPosts);
-        
+
         // Search functionality
         editTextSearch.addTextChangedListener(new TextWatcher() {
             @Override
@@ -136,7 +162,34 @@ public class HomeActivity extends AppCompatActivity implements PostAdapter.OnPos
                 performSearch();
             }
         });
-        
+
+        // Search mode spinner listener
+        if (spinnerSearchMode != null) {
+            spinnerSearchMode.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+                @Override
+                public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                    String modeLabel = (String) parent.getItemAtPosition(position);
+                    if ("Tag".equals(modeLabel)) {
+                        currentSearchMode = SearchMode.TAG;
+                    } else if ("Author".equals(modeLabel)) {
+                        currentSearchMode = SearchMode.AUTHOR;
+                    } else if ("Title".equals(modeLabel)) {
+                        currentSearchMode = SearchMode.TITLE;
+                    } else {
+                        currentSearchMode = SearchMode.FULL_TEXT;
+                    }
+                    // Re-run search when mode changes
+                    performSearch();
+                }
+
+                @Override
+                public void onNothingSelected(AdapterView<?> parent) {
+                    // Default to full text
+                    currentSearchMode = SearchMode.FULL_TEXT;
+                }
+            });
+        }
+
         // Sort functionality
         toggleGroupSort.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
             if (isChecked) {
@@ -144,10 +197,10 @@ public class HomeActivity extends AppCompatActivity implements PostAdapter.OnPos
                 loadPosts();
             }
         });
-        
+
         // Tag filter functionality
         buttonFilterTags.setOnClickListener(v -> showTagFilterDialog());
-        
+
         // Load all tags for filtering
         loadAllTags();
     }
@@ -160,12 +213,12 @@ public class HomeActivity extends AppCompatActivity implements PostAdapter.OnPos
             public void onSuccess(List<Post> posts) {
                 showLoading(false);
                 swipeRefreshLayout.setRefreshing(false);
-                
+
                 // Apply tag filtering if any tags are selected
                 List<Post> filteredPosts = filterPostsByTags(posts);
-                
+
                 postAdapter.updatePosts(filteredPosts);
-                
+
                 if (filteredPosts.isEmpty()) {
                     String emptyMessage = selectedTags.isEmpty() && currentSearchQuery.isEmpty()
                             ? "No posts yet.\nBe the first to create one!"
@@ -187,10 +240,26 @@ public class HomeActivity extends AppCompatActivity implements PostAdapter.OnPos
             }
         };
 
+        String trimmedQuery = currentSearchQuery == null ? "" : currentSearchQuery.trim();
+
         // Determine which method to call based on current state
-        if (!currentSearchQuery.isEmpty()) {
+        if (!trimmedQuery.isEmpty()) {
             // Search mode
-            postRepository.searchPostsWithTags(currentSearchQuery, callback);
+            switch (currentSearchMode) {
+                case TAG:
+                    postRepository.getPostsByTag(trimmedQuery, callback);
+                    break;
+                case AUTHOR:
+                    postRepository.searchPostsByAuthorName(trimmedQuery, callback);
+                    break;
+                case TITLE:
+                    postRepository.searchPostsByTitle(trimmedQuery, callback);
+                    break;
+                case FULL_TEXT:
+                default:
+                    postRepository.searchPostsWithTags(trimmedQuery, callback);
+                    break;
+            }
         } else if (sortByVotes) {
             // Sort by votes
             postRepository.getAllPostsByVotes(callback);
@@ -201,10 +270,8 @@ public class HomeActivity extends AppCompatActivity implements PostAdapter.OnPos
     }
 
     private void performSearch() {
-        // Debounce search to avoid too many queries
-        if (currentSearchQuery.length() >= 2 || currentSearchQuery.isEmpty()) {
-            loadPosts();
-        }
+        // Always reload posts; loadPosts handles whether it's search or normal feed
+        loadPosts();
     }
 
     private List<Post> filterPostsByTags(List<Post> posts) {
@@ -355,7 +422,7 @@ public class HomeActivity extends AppCompatActivity implements PostAdapter.OnPos
             public void onSuccess(List<Post> posts) {
                 showLoading(false);
                 postAdapter.updatePosts(posts);
-                
+
                 if (posts.isEmpty()) {
                     textViewEmpty.setText("You haven't created any posts yet");
                     textViewEmpty.setVisibility(View.VISIBLE);
@@ -377,7 +444,7 @@ public class HomeActivity extends AppCompatActivity implements PostAdapter.OnPos
     private void handleLogout() {
         authRepository.logout();
         sessionManager.logout();
-        
+
         Intent intent = new Intent(this, LoginActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);

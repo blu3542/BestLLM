@@ -55,7 +55,7 @@ public class PostRepository {
 
         // Generate new document ID
         String postId = db.collection(COLLECTION_POSTS).document().getId();
-        
+
         Post post = new Post(postId, title.trim(), body.trim(), tags, authorId, authorName);
 
         db.collection(COLLECTION_POSTS)
@@ -151,7 +151,7 @@ public class PostRepository {
     }
 
     /**
-     * Get all posts by a specific author
+     * Get all posts by a specific author (by authorId)
      */
     public void getPostsByAuthor(String authorId, PostListCallback callback) {
         db.collection(COLLECTION_POSTS)
@@ -163,7 +163,7 @@ public class PostRepository {
                         Post post = document.toObject(Post.class);
                         posts.add(post);
                     }
-                    
+
                     // Sort by creation date in memory to avoid composite index requirement
                     posts.sort((p1, p2) -> {
                         if (p1.getCreatedAt() == null && p2.getCreatedAt() == null) return 0;
@@ -171,7 +171,7 @@ public class PostRepository {
                         if (p2.getCreatedAt() == null) return -1;
                         return p2.getCreatedAt().compareTo(p1.getCreatedAt());
                     });
-                    
+
                     Log.d(TAG, "Fetched " + posts.size() + " posts for author: " + authorId);
                     callback.onSuccess(posts);
                 })
@@ -206,26 +206,67 @@ public class PostRepository {
     /**
      * Get posts by tag
      */
+//    public void getPostsByTag(String tag, PostListCallback callback) {
+//        db.collection(COLLECTION_POSTS)
+//                .whereArrayContains("tags", tag)
+//                .get()
+//                .addOnSuccessListener(queryDocumentSnapshots -> {
+//                    List<Post> posts = new ArrayList<>();
+//                    for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
+//                        Post post = document.toObject(Post.class);
+//                        posts.add(post);
+//                    }
+//
+//                    // Sort by creation date in memory to avoid composite index requirement
+//                    posts.sort((p1, p2) -> {
+//                        if (p1.getCreatedAt() == null && p2.getCreatedAt() == null) return 0;
+//                        if (p1.getCreatedAt() == null) return 1;
+//                        if (p2.getCreatedAt() == null) return -1;
+//                        return p2.getCreatedAt().compareTo(p1.getCreatedAt());
+//                    });
+//
+//                    Log.d(TAG, "Fetched " + posts.size() + " posts with tag: " + tag);
+//                    callback.onSuccess(posts);
+//                })
+//                .addOnFailureListener(e -> {
+//                    Log.e(TAG, "Error fetching posts by tag", e);
+//                    callback.onError("Failed to fetch posts: " + e.getMessage());
+//                });
+//    }
+    /**
+     * Get posts by tag (case-insensitive substring match on tags)
+     */
     public void getPostsByTag(String tag, PostListCallback callback) {
+        if (tag == null || tag.trim().isEmpty()) {
+            getAllPostsRecent(callback);
+            return;
+        }
+
+        String query = tag.trim().toLowerCase();
+
         db.collection(COLLECTION_POSTS)
-                .whereArrayContains("tags", tag)
+                .orderBy("createdAt", Query.Direction.DESCENDING)
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     List<Post> posts = new ArrayList<>();
                     for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
                         Post post = document.toObject(Post.class);
-                        posts.add(post);
+                        if (post == null || post.getTags() == null) continue;
+
+                        boolean tagMatch = false;
+                        for (String t : post.getTags()) {
+                            if (t != null && t.toLowerCase().contains(query)) {
+                                tagMatch = true;
+                                break;
+                            }
+                        }
+
+                        if (tagMatch) {
+                            posts.add(post);
+                        }
                     }
-                    
-                    // Sort by creation date in memory to avoid composite index requirement
-                    posts.sort((p1, p2) -> {
-                        if (p1.getCreatedAt() == null && p2.getCreatedAt() == null) return 0;
-                        if (p1.getCreatedAt() == null) return 1;
-                        if (p2.getCreatedAt() == null) return -1;
-                        return p2.getCreatedAt().compareTo(p1.getCreatedAt());
-                    });
-                    
-                    Log.d(TAG, "Fetched " + posts.size() + " posts with tag: " + tag);
+
+                    Log.d(TAG, "Fetched " + posts.size() + " posts matching tag query: " + tag);
                     callback.onSuccess(posts);
                 })
                 .addOnFailureListener(e -> {
@@ -233,6 +274,7 @@ public class PostRepository {
                     callback.onError("Failed to fetch posts: " + e.getMessage());
                 });
     }
+
 
     /**
      * Get all posts ordered by most upvotes (for sorting)
@@ -246,7 +288,7 @@ public class PostRepository {
                         Post post = document.toObject(Post.class);
                         posts.add(post);
                     }
-                    
+
                     // Sort by votes then by creation date in memory
                     posts.sort((p1, p2) -> {
                         // First compare by net votes (upvotes - downvotes)
@@ -254,14 +296,14 @@ public class PostRepository {
                         if (voteComparison != 0) {
                             return voteComparison;
                         }
-                        
+
                         // If votes are equal, sort by creation date (most recent first)
                         if (p1.getCreatedAt() == null && p2.getCreatedAt() == null) return 0;
                         if (p1.getCreatedAt() == null) return 1;
                         if (p2.getCreatedAt() == null) return -1;
                         return p2.getCreatedAt().compareTo(p1.getCreatedAt());
                     });
-                    
+
                     Log.d(TAG, "Fetched " + posts.size() + " posts sorted by votes");
                     callback.onSuccess(posts);
                 })
@@ -281,7 +323,7 @@ public class PostRepository {
         }
 
         String query = searchQuery.trim().toLowerCase();
-        
+
         // Note: Firestore doesn't support full-text search natively
         // This is a basic implementation that gets all posts and filters locally
         // For production, consider using Algolia or similar search service
@@ -292,13 +334,13 @@ public class PostRepository {
                     List<Post> posts = new ArrayList<>();
                     for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
                         Post post = document.toObject(Post.class);
-                        
+
                         // Check if title or body contains search query
                         boolean titleMatch = post.getTitle() != null &&
                                 post.getTitle().toLowerCase().contains(query);
                         boolean bodyMatch = post.getBody() != null &&
                                 post.getBody().toLowerCase().contains(query);
-                        
+
                         if (titleMatch || bodyMatch) {
                             posts.add(post);
                         }
@@ -313,7 +355,55 @@ public class PostRepository {
     }
 
     /**
-     * Search posts by title, body, or tags
+     * Search posts by title, body, or tags (full text mode)
+     */
+//    public void searchPostsWithTags(String searchQuery, PostListCallback callback) {
+//        if (searchQuery == null || searchQuery.trim().isEmpty()) {
+//            getAllPostsRecent(callback);
+//            return;
+//        }
+//
+//        String query = searchQuery.trim().toLowerCase();
+//
+//        db.collection(COLLECTION_POSTS)
+//                .orderBy("createdAt", Query.Direction.DESCENDING)
+//                .get()
+//                .addOnSuccessListener(queryDocumentSnapshots -> {
+//                    List<Post> posts = new ArrayList<>();
+//                    for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
+//                        Post post = document.toObject(Post.class);
+//
+//                        // Check if title, body, or tags contain search query
+//                        boolean titleMatch = post.getTitle() != null &&
+//                                post.getTitle().toLowerCase().contains(query);
+//                        boolean bodyMatch = post.getBody() != null &&
+//                                post.getBody().toLowerCase().contains(query);
+//
+//                        boolean tagMatch = false;
+//                        if (post.getTags() != null) {
+//                            for (String tag : post.getTags()) {
+//                                if (tag.toLowerCase().contains(query)) {
+//                                    tagMatch = true;
+//                                    break;
+//                                }
+//                            }
+//                        }
+//
+//                        if (titleMatch || bodyMatch || tagMatch) {
+//                            posts.add(post);
+//                        }
+//                    }
+//                    Log.d(TAG, "Found " + posts.size() + " posts matching query with tags: " + searchQuery);
+//                    callback.onSuccess(posts);
+//                })
+//                .addOnFailureListener(e -> {
+//                    Log.e(TAG, "Error searching posts with tags", e);
+//                    callback.onError("Failed to search posts: " + e.getMessage());
+//                });
+//    }
+
+    /**
+     * "Full text" search: search posts by title or body content only
      */
     public void searchPostsWithTags(String searchQuery, PostListCallback callback) {
         if (searchQuery == null || searchQuery.trim().isEmpty()) {
@@ -322,7 +412,7 @@ public class PostRepository {
         }
 
         String query = searchQuery.trim().toLowerCase();
-        
+
         db.collection(COLLECTION_POSTS)
                 .orderBy("createdAt", Query.Direction.DESCENDING)
                 .get()
@@ -330,33 +420,93 @@ public class PostRepository {
                     List<Post> posts = new ArrayList<>();
                     for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
                         Post post = document.toObject(Post.class);
-                        
-                        // Check if title, body, or tags contain search query
+                        if (post == null) continue;
+
                         boolean titleMatch = post.getTitle() != null &&
                                 post.getTitle().toLowerCase().contains(query);
                         boolean bodyMatch = post.getBody() != null &&
                                 post.getBody().toLowerCase().contains(query);
-                        
-                        boolean tagMatch = false;
-                        if (post.getTags() != null) {
-                            for (String tag : post.getTags()) {
-                                if (tag.toLowerCase().contains(query)) {
-                                    tagMatch = true;
-                                    break;
-                                }
-                            }
-                        }
-                        
-                        if (titleMatch || bodyMatch || tagMatch) {
+
+                        // ✅ Only title OR body, no tags
+                        if (titleMatch || bodyMatch) {
                             posts.add(post);
                         }
                     }
-                    Log.d(TAG, "Found " + posts.size() + " posts matching query with tags: " + searchQuery);
+                    Log.d(TAG, "Found " + posts.size() + " posts matching full-text query: " + searchQuery);
                     callback.onSuccess(posts);
                 })
                 .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error searching posts with tags", e);
+                    Log.e(TAG, "Error searching posts", e);
                     callback.onError("Failed to search posts: " + e.getMessage());
+                });
+    }
+
+
+    /**
+     * Search posts by title only
+     */
+    public void searchPostsByTitle(String searchQuery, PostListCallback callback) {
+        if (searchQuery == null || searchQuery.trim().isEmpty()) {
+            getAllPostsRecent(callback);
+            return;
+        }
+
+        String query = searchQuery.trim().toLowerCase();
+
+        db.collection(COLLECTION_POSTS)
+                .orderBy("createdAt", Query.Direction.DESCENDING)
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    List<Post> posts = new ArrayList<>();
+                    for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
+                        Post post = document.toObject(Post.class);
+                        if (post == null) continue;
+
+                        String title = post.getTitle();
+                        if (title != null && title.toLowerCase().contains(query)) {
+                            posts.add(post);
+                        }
+                    }
+                    Log.d(TAG, "Found " + posts.size() + " posts matching title query: " + searchQuery);
+                    callback.onSuccess(posts);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error searching posts by title", e);
+                    callback.onError("Failed to search posts by title: " + e.getMessage());
+                });
+    }
+
+    /**
+     * Search posts by author name (display name)
+     */
+    public void searchPostsByAuthorName(String searchQuery, PostListCallback callback) {
+        if (searchQuery == null || searchQuery.trim().isEmpty()) {
+            getAllPostsRecent(callback);
+            return;
+        }
+
+        String query = searchQuery.trim().toLowerCase();
+
+        db.collection(COLLECTION_POSTS)
+                .orderBy("createdAt", Query.Direction.DESCENDING)
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    List<Post> posts = new ArrayList<>();
+                    for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
+                        Post post = document.toObject(Post.class);
+                        if (post == null) continue;
+
+                        String authorName = post.getAuthorName();
+                        if (authorName != null && authorName.toLowerCase().contains(query)) {
+                            posts.add(post);
+                        }
+                    }
+                    Log.d(TAG, "Found " + posts.size() + " posts matching author query: " + searchQuery);
+                    callback.onSuccess(posts);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error searching posts by author name", e);
+                    callback.onError("Failed to search posts by author: " + e.getMessage());
                 });
     }
 
@@ -392,4 +542,3 @@ public class PostRepository {
         void onError(String error);
     }
 }
-
