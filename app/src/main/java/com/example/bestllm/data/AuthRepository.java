@@ -23,17 +23,26 @@ public class AuthRepository {
         void onError(String error);
     }
 
-    public void register(String name, String email, String password, AuthCallback callback) {
+    public void register(String name, String email, String studentID, String password, AuthCallback callback) {
+        // Validate name
         if (!Validators.isValidName(name)) {
             callback.onError("Please enter a valid name");
             return;
         }
 
+        // Validate USC email
         if (!Validators.isValidUSCEmail(email)) {
             callback.onError("Please use a valid USC email (@usc.edu)");
             return;
         }
 
+        // ✅ Validate 10-digit Student ID
+        if (!Validators.isValidStudentId(studentID)) {
+            callback.onError("Student ID must be exactly 10 digits");
+            return;
+        }
+
+        // Validate password
         if (!Validators.isValidPassword(password)) {
             callback.onError("Password must be at least 6 characters");
             return;
@@ -44,8 +53,14 @@ public class AuthRepository {
                     if (task.isSuccessful()) {
                         FirebaseUser firebaseUser = mAuth.getCurrentUser();
                         if (firebaseUser != null) {
+                            // Create User object and attach Student ID
                             User user = new User(firebaseUser.getUid(), name, email);
+                            user.setStudentId(studentID);   // 🔹 This will be saved in Firestore
+
                             createUserDocument(user, callback);
+                        } else {
+                            Log.e(TAG, "Firebase user is null after registration");
+                            callback.onError("Failed to create user");
                         }
                     } else {
                         String error = task.getException() != null ?
@@ -87,6 +102,9 @@ public class AuthRepository {
                         FirebaseUser firebaseUser = mAuth.getCurrentUser();
                         if (firebaseUser != null) {
                             fetchUserData(firebaseUser.getUid(), callback);
+                        } else {
+                            Log.e(TAG, "Firebase user is null after login");
+                            callback.onError("User not found");
                         }
                     } else {
                         String error = task.getException() != null ?

@@ -16,6 +16,10 @@ public class Validators {
         return password != null && password.length() >= 6;
     }
 
+    public static boolean isValidStudentId(String studentId) {
+        return studentId != null && studentId.matches("\\d{10}");
+    }
+
     public static boolean isValidName(String name) {
         return name != null && !name.trim().isEmpty() && name.length() >= 2;
     }

@@ -5,6 +5,7 @@ import com.google.firebase.Timestamp;
 public class User {
     private String userId;
     private String name;
+    private String studentId;
     private String email;
     private String bio;
     private Timestamp birthDate;
@@ -24,6 +25,9 @@ public class User {
         this.upvotableStatus = true;
         this.createdAt = Timestamp.now();
     }
+
+    public String getStudentId() { return studentId; }
+    public void setStudentId(String studentId) { this.studentId = studentId; }
 
     // Getters and Setters
     public String getUserId() {

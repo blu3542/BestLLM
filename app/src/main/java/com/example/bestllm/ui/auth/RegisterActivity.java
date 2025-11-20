@@ -18,7 +18,7 @@ import com.example.bestllm.utils.SessionManager;
 
 public class RegisterActivity extends AppCompatActivity {
 
-    private TextInputEditText editTextName, editTextEmail, editTextPassword, editTextConfirmPassword;
+    private TextInputEditText editTextName, editTextEmail, editStudentID, editTextPassword, editTextConfirmPassword;
     private Button buttonRegister;
     private ProgressBar progressBar;
 
@@ -40,6 +40,7 @@ public class RegisterActivity extends AppCompatActivity {
     private void initViews() {
         editTextName = findViewById(R.id.editTextName);
         editTextEmail = findViewById(R.id.editTextEmail);
+        editStudentID = findViewById(R.id.editStudentId);
         editTextPassword = findViewById(R.id.editTextPassword);
         editTextConfirmPassword = findViewById(R.id.editTextConfirmPassword);
         buttonRegister = findViewById(R.id.buttonRegister);
@@ -58,6 +59,7 @@ public class RegisterActivity extends AppCompatActivity {
     private void handleRegister() {
         String name = editTextName.getText().toString().trim();
         String email = editTextEmail.getText().toString().trim();
+        String studentId = editStudentID.getText().toString().trim();
         String password = editTextPassword.getText().toString();
         String confirmPassword = editTextConfirmPassword.getText().toString();
 
@@ -66,9 +68,14 @@ public class RegisterActivity extends AppCompatActivity {
             return;
         }
 
+        if (!studentId.matches("\\d{10}")) {
+            Toast.makeText(this, "Student ID must be exactly 10 digits", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         showLoading(true);
 
-        authRepository.register(name, email, password, new AuthRepository.AuthCallback() {
+        authRepository.register(name, email, studentId, password, new AuthRepository.AuthCallback() {
             @Override
             public void onSuccess(User user) {
                 showLoading(false);
