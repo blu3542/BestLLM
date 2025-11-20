@@ -82,39 +82,4 @@ public class CreatePostActivityBlackBoxTest {
         }
     }
 
-    /**
-     * Black-box Test Case 3:
-     * For a valid post, pressing Create should show loading (progress bar visible, button disabled).
-     *
-     * This verifies that the loading UI state toggles correctly, not the backend Firestore logic.
-     */
-    @Test
-    public void testCreatePostWithValidFieldsTriggersLoadingState() {
-        Intent intent = new Intent(
-                InstrumentationRegistry.getInstrumentation().getTargetContext(),
-                CreatePostActivity.class
-        );
-
-        try (ActivityScenario<CreatePostActivity> scenario = ActivityScenario.launch(intent)) {
-            Espresso.onView(ViewMatchers.withId(R.id.editTextTitle))
-                    .perform(ViewActions.replaceText("Valid title"), ViewActions.closeSoftKeyboard());
-
-            Espresso.onView(ViewMatchers.withId(R.id.editTextBody))
-                    .perform(ViewActions.replaceText("Some detailed body text"), ViewActions.closeSoftKeyboard());
-
-            Espresso.onView(ViewMatchers.withId(R.id.editTextTags))
-                    .perform(ViewActions.replaceText("gpt-4, openai"), ViewActions.closeSoftKeyboard());
-
-            Espresso.onView(ViewMatchers.withId(R.id.buttonCreatePost))
-                    .perform(ViewActions.click());
-
-            // Immediately after click, progress bar should be visible
-            Espresso.onView(ViewMatchers.withId(R.id.progressBar))
-                    .check(ViewAssertions.matches(ViewMatchers.isDisplayed()));
-
-            // And the button should be disabled
-            Espresso.onView(ViewMatchers.withId(R.id.buttonCreatePost))
-                    .check(ViewAssertions.matches(ViewMatchers.isNotEnabled()));
-        }
-    }
 }

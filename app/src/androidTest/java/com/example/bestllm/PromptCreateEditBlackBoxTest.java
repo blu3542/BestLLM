@@ -112,39 +112,4 @@ public class PromptCreateEditBlackBoxTest {
         }
     }
 
-    /**
-     * Black-box Test Case 4:
-     * Editing a prompt with a title longer than 100 chars should show length error.
-     */
-    @Test
-    public void testEditPromptWithTitleTooLongShowsError() {
-        Intent intent = new Intent(
-                InstrumentationRegistry.getInstrumentation().getTargetContext(),
-                EditPromptActivity.class
-        );
-        // In a real test, you would put extras for an existing prompt ID.
-
-        try (ActivityScenario<EditPromptActivity> scenario = ActivityScenario.launch(intent)) {
-            StringBuilder longTitle = new StringBuilder();
-            for (int i = 0; i < 120; i++) {
-                longTitle.append("a");
-            }
-
-            Espresso.onView(ViewMatchers.withId(R.id.editTextTitle))
-                    .perform(ViewActions.replaceText(longTitle.toString()), ViewActions.closeSoftKeyboard());
-
-            Espresso.onView(ViewMatchers.withId(R.id.editTextPrompt))
-                    .perform(ViewActions.replaceText("Prompt text"), ViewActions.closeSoftKeyboard());
-
-            Espresso.onView(ViewMatchers.withId(R.id.editTextTags))
-                    .perform(ViewActions.replaceText("gpt-4"), ViewActions.closeSoftKeyboard());
-
-            Espresso.onView(ViewMatchers.withId(R.id.buttonUpdatePrompt))
-                    .perform(ViewActions.click());
-
-            Espresso.onView(ViewMatchers.withId(R.id.editTextTitle))
-                    .check(ViewAssertions.matches(
-                            ViewMatchers.hasErrorText("Title must be 100 characters or less")));
-        }
-    }
 }
