@@ -27,9 +27,17 @@ public class PromptRepository {
     public interface TagListCallback { void onSuccess(List<String> tags); void onError(String error); }
 
     // ---- Create ----
-    public void createPrompt(String text, List<String> tags, String authorId, String authorName, PromptCallback cb) {
+    public void createPrompt(String title, String text, List<String> tags, String authorId, String authorName, PromptCallback cb) {
+        if (title == null || title.trim().isEmpty()) {
+            cb.onError("Prompt title is required");
+            return;
+        }
         if (text == null || text.trim().isEmpty()) {
             cb.onError("Prompt text is required");
+            return;
+        }
+        if (tags == null || tags.isEmpty()) {
+            cb.onError("At least one tag is required");
             return;
         }
         // Soft limit to keep UI snappy; adjust as you wish.
@@ -37,9 +45,13 @@ public class PromptRepository {
             cb.onError("Prompt must be 5000 characters or less");
             return;
         }
+        if (title.length() > 100) {
+            cb.onError("Title must be 100 characters or less");
+            return;
+        }
 
         String promptId = db.collection(COLLECTION_PROMPTS).document().getId();
-        Prompt p = new Prompt(promptId, text.trim(), tags, authorId, authorName);
+        Prompt p = new Prompt(promptId, title.trim(), text.trim(), tags, authorId, authorName);
 
         db.collection(COLLECTION_PROMPTS)
                 .document(promptId)
@@ -75,19 +87,32 @@ public class PromptRepository {
     }
 
     // ---- Update ----
-    public void updatePrompt(String promptId, String newText, List<String> newTags, PromptCallback cb) {
+    public void updatePrompt(String promptId, String newTitle, String newText, List<String> newTags, PromptCallback cb) {
+        if (newTitle == null || newTitle.trim().isEmpty()) {
+            cb.onError("Prompt title is required");
+            return;
+        }
         if (newText == null || newText.trim().isEmpty()) {
             cb.onError("Prompt text is required");
+            return;
+        }
+        if (newTags == null || newTags.isEmpty()) {
+            cb.onError("At least one tag is required");
             return;
         }
         if (newText.length() > 5000) {
             cb.onError("Prompt must be 5000 characters or less");
             return;
         }
+        if (newTitle.length() > 100) {
+            cb.onError("Title must be 100 characters or less");
+            return;
+        }
 
         db.collection(COLLECTION_PROMPTS)
                 .document(promptId)
                 .update(
+                        "title", newTitle.trim(),
                         "text", newText.trim(),
                         "tags", newTags,
                         "updatedAt", Timestamp.now()
@@ -198,8 +223,9 @@ public class PromptRepository {
                     List<Prompt> out = new ArrayList<>();
                     for (QueryDocumentSnapshot d : sn) {
                         Prompt p = d.toObject(Prompt.class);
+                        boolean titleMatch = p.getTitle() != null && p.getTitle().toLowerCase().contains(q);
                         boolean textMatch = p.getText() != null && p.getText().toLowerCase().contains(q);
-                        if (textMatch) out.add(p);
+                        if (titleMatch || textMatch) out.add(p);
                     }
                     Log.d(TAG, "Found " + out.size() + " prompts matching: " + searchQuery);
                     cb.onSuccess(out);
@@ -225,6 +251,7 @@ public class PromptRepository {
                     for (QueryDocumentSnapshot d : sn) {
                         Prompt p = d.toObject(Prompt.class);
 
+                        boolean titleMatch = p.getTitle() != null && p.getTitle().toLowerCase().contains(q);
                         boolean textMatch = p.getText() != null && p.getText().toLowerCase().contains(q);
                         boolean tagMatch = false;
                         if (p.getTags() != null) {
@@ -233,7 +260,7 @@ public class PromptRepository {
                             }
                         }
 
-                        if (textMatch || tagMatch) out.add(p);
+                        if (titleMatch || textMatch || tagMatch) out.add(p);
                     }
                     Log.d(TAG, "Found " + out.size() + " prompts matching with tags: " + searchQuery);
                     cb.onSuccess(out);

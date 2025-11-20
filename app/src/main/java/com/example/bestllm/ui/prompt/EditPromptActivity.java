@@ -24,7 +24,7 @@ public class EditPromptActivity extends AppCompatActivity {
 
     public static final String EXTRA_PROMPT_ID = "prompt_id";
 
-    private TextInputEditText editTextPrompt, editTextTags;
+    private TextInputEditText editTextTitle, editTextPrompt, editTextTags;
     private Button buttonUpdate, buttonCancel;
     private CircularProgressIndicator progress;
 
@@ -56,6 +56,7 @@ public class EditPromptActivity extends AppCompatActivity {
     }
 
     private void initViews() {
+        editTextTitle  = findViewById(R.id.editTextTitle);
         editTextPrompt = findViewById(R.id.editTextPrompt);
         editTextTags   = findViewById(R.id.editTextTags);
         buttonUpdate   = findViewById(R.id.buttonUpdatePrompt);
@@ -90,6 +91,7 @@ public class EditPromptActivity extends AppCompatActivity {
                 }
 
                 // populate
+                editTextTitle.setText(prompt.getTitle() != null ? prompt.getTitle() : "");
                 editTextPrompt.setText(prompt.getText());
                 if (prompt.getTags() != null && !prompt.getTags().isEmpty()) {
                     editTextTags.setText(String.join(", ", prompt.getTags()));
@@ -105,9 +107,20 @@ public class EditPromptActivity extends AppCompatActivity {
     }
 
     private void handleUpdate() {
+        String title = safe(editTextTitle);
         String text = safe(editTextPrompt);
         String rawTags = safe(editTextTags);
 
+        if (title.isEmpty()) {
+            editTextTitle.setError("Title is required");
+            editTextTitle.requestFocus();
+            return;
+        }
+        if (title.length() > 100) {
+            editTextTitle.setError("Title must be 100 characters or less");
+            editTextTitle.requestFocus();
+            return;
+        }
         if (text.isEmpty()) {
             editTextPrompt.setError("Prompt text is required");
             editTextPrompt.requestFocus();
@@ -119,8 +132,15 @@ public class EditPromptActivity extends AppCompatActivity {
             return;
         }
 
+        List<String> tags = parseTags(rawTags);
+        if (tags.isEmpty()) {
+            editTextTags.setError("At least one tag is required");
+            editTextTags.requestFocus();
+            return;
+        }
+
         showLoading(true);
-        promptRepo.updatePrompt(promptId, text, parseTags(rawTags), new PromptRepository.PromptCallback() {
+        promptRepo.updatePrompt(promptId, title, text, tags, new PromptRepository.PromptCallback() {
             @Override public void onSuccess(Prompt prompt) {
                 showLoading(false);
                 Toast.makeText(EditPromptActivity.this, "Prompt updated!", Toast.LENGTH_SHORT).show();
@@ -152,6 +172,7 @@ public class EditPromptActivity extends AppCompatActivity {
         progress.setVisibility(show ? View.VISIBLE : View.GONE);
         buttonUpdate.setEnabled(!show);
         buttonCancel.setEnabled(!show);
+        editTextTitle.setEnabled(!show);
         editTextPrompt.setEnabled(!show);
         editTextTags.setEnabled(!show);
     }

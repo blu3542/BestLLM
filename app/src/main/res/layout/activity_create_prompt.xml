@@ -28,6 +28,20 @@ android:fillViewport="true">
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:hint="@string/title_hint">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/editTextTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="text"
+            android:maxLength="100" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
         android:hint="@string/prompt_hint">
 
         <com.google.android.material.textfield.TextInputEditText
@@ -43,7 +57,7 @@ android:fillViewport="true">
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp"
-        android:hint="@string/tags_hint">
+        android:hint="@string/tags_required_hint">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/editTextTags"

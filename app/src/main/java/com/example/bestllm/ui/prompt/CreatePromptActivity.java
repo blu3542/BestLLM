@@ -22,7 +22,7 @@ import java.util.List;
 
 public class CreatePromptActivity extends AppCompatActivity {
 
-    private TextInputEditText editTextPrompt, editTextTags;
+    private TextInputEditText editTextTitle, editTextPrompt, editTextTags;
     private Button buttonCreate, buttonCancel;
     private CircularProgressIndicator progress;
 
@@ -51,6 +51,7 @@ public class CreatePromptActivity extends AppCompatActivity {
     }
 
     private void initViews() {
+        editTextTitle  = findViewById(R.id.editTextTitle);
         editTextPrompt = findViewById(R.id.editTextPrompt);
         editTextTags   = findViewById(R.id.editTextTags);
         buttonCreate   = findViewById(R.id.buttonCreatePrompt);
@@ -64,9 +65,20 @@ public class CreatePromptActivity extends AppCompatActivity {
     }
 
     private void handleCreate() {
+        String title = safe(editTextTitle);
         String text = safe(editTextPrompt);
         String tagsRaw = safe(editTextTags);
 
+        if (title.isEmpty()) {
+            editTextTitle.setError("Title is required");
+            editTextTitle.requestFocus();
+            return;
+        }
+        if (title.length() > 100) {
+            editTextTitle.setError("Title must be 100 characters or less");
+            editTextTitle.requestFocus();
+            return;
+        }
         if (text.isEmpty()) {
             editTextPrompt.setError("Prompt text is required");
             editTextPrompt.requestFocus();
@@ -75,6 +87,13 @@ public class CreatePromptActivity extends AppCompatActivity {
         if (text.length() > 5000) {
             editTextPrompt.setError("Prompt must be 5000 characters or less");
             editTextPrompt.requestFocus();
+            return;
+        }
+
+        List<String> tags = parseTags(tagsRaw);
+        if (tags.isEmpty()) {
+            editTextTags.setError("At least one tag is required");
+            editTextTags.requestFocus();
             return;
         }
 
@@ -87,7 +106,7 @@ public class CreatePromptActivity extends AppCompatActivity {
         }
 
         showLoading(true);
-        promptRepo.createPrompt(text, parseTags(tagsRaw), uid, name, new PromptRepository.PromptCallback() {
+        promptRepo.createPrompt(title, text, tags, uid, name, new PromptRepository.PromptCallback() {
             @Override public void onSuccess(Prompt prompt) {
                 showLoading(false);
                 Toast.makeText(CreatePromptActivity.this, "Prompt shared!", Toast.LENGTH_SHORT).show();
@@ -119,6 +138,7 @@ public class CreatePromptActivity extends AppCompatActivity {
         progress.setVisibility(show ? View.VISIBLE : View.GONE);
         buttonCreate.setEnabled(!show);
         buttonCancel.setEnabled(!show);
+        editTextTitle.setEnabled(!show);
         editTextPrompt.setEnabled(!show);
         editTextTags.setEnabled(!show);
     }

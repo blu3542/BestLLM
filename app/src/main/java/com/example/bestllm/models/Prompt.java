@@ -6,6 +6,7 @@ import java.util.List;
 
 public class Prompt {
     private String promptId;
+    private String title;             // title for the shared prompt
     private String text;              // the actual LLM prompt
     private List<String> tags;
     private String authorId;
@@ -20,8 +21,9 @@ public class Prompt {
         this.updatedAt = Timestamp.now();
     }
 
-    public Prompt(String promptId, String text, List<String> tags, String authorId, String authorName) {
+    public Prompt(String promptId, String title, String text, List<String> tags, String authorId, String authorName) {
         this.promptId = promptId;
+        this.title = title;
         this.text = text;
         this.tags = tags != null ? tags : new ArrayList<>();
         this.authorId = authorId;
@@ -32,6 +34,9 @@ public class Prompt {
 
     public String getPromptId() { return promptId; }
     public void setPromptId(String promptId) { this.promptId = promptId; }
+
+    public String getTitle() { return title; }
+    public void setTitle(String title) { this.title = title; }
 
     public String getText() { return text; }
     public void setText(String text) { this.text = text; }

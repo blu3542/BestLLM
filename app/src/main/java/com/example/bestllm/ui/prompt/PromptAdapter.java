@@ -12,6 +12,8 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.bestllm.R;
 import com.example.bestllm.models.Prompt;
+import com.google.android.material.chip.Chip;
+import com.google.android.material.chip.ChipGroup;
 import com.google.firebase.Timestamp;
 
 import java.text.DateFormat;
@@ -54,8 +56,31 @@ public class PromptAdapter extends RecyclerView.Adapter<PromptAdapter.VH> {
         Context ctx = h.itemView.getContext();
         Prompt p = items.get(position);
 
+        h.title.setText(p.getTitle() != null ? p.getTitle() : "Untitled Prompt");
         h.text.setText(p.getText());
         h.author.setText(p.getAuthorName() == null ? "Unknown" : p.getAuthorName());
+
+        // Display tags using Chips (similar to PostAdapter)
+        h.chipGroupTags.removeAllViews();
+        if (p.getTags() != null && !p.getTags().isEmpty()) {
+            int tagCount = Math.min(p.getTags().size(), 3);
+            for (int i = 0; i < tagCount; i++) {
+                Chip chip = new Chip(ctx);
+                chip.setText(p.getTags().get(i));
+                chip.setClickable(false);
+                chip.setCheckable(false);
+                h.chipGroupTags.addView(chip);
+            }
+            
+            // Add "more" indicator if there are more tags
+            if (p.getTags().size() > 3) {
+                Chip chip = new Chip(ctx);
+                chip.setText("+" + (p.getTags().size() - 3) + " more");
+                chip.setClickable(false);
+                chip.setCheckable(false);
+                h.chipGroupTags.addView(chip);
+            }
+        }
 
         Timestamp ts = p.getCreatedAt();
         Date when = ts != null ? ts.toDate() : new Date();
@@ -76,16 +101,19 @@ public class PromptAdapter extends RecyclerView.Adapter<PromptAdapter.VH> {
     public int getItemCount() { return items.size(); }
 
     static class VH extends RecyclerView.ViewHolder {
-        TextView text, author, date;
+        TextView title, text, author, date;
+        ChipGroup chipGroupTags;
         ImageButton btnShare, btnEdit, btnDelete;
         VH(@NonNull View v) {
             super(v);
-            text     = v.findViewById(R.id.tvPromptText);
-            author   = v.findViewById(R.id.tvAuthorName);
-            date     = v.findViewById(R.id.tvDate);
-            btnShare = v.findViewById(R.id.btnSharePrompt);
-            btnEdit  = v.findViewById(R.id.btnEditPrompt);
-            btnDelete= v.findViewById(R.id.btnDeletePrompt);
+            title         = v.findViewById(R.id.tvPromptTitle);
+            text          = v.findViewById(R.id.tvPromptText);
+            chipGroupTags = v.findViewById(R.id.chipGroupTags);
+            author        = v.findViewById(R.id.tvAuthorName);
+            date          = v.findViewById(R.id.tvDate);
+            btnShare      = v.findViewById(R.id.btnSharePrompt);
+            btnEdit       = v.findViewById(R.id.btnEditPrompt);
+            btnDelete     = v.findViewById(R.id.btnDeletePrompt);
         }
     }
 }

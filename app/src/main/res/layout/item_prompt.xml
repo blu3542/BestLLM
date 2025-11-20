@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:card_view="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent" android:layout_height="wrap_content"
     android:layout_margin="8dp"
@@ -12,10 +13,29 @@
         android:padding="12dp" android:orientation="vertical">
 
         <TextView
+            android:id="@+id/tvPromptTitle"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="Prompt Title"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="4dp" />
+
+        <TextView
             android:id="@+id/tvPromptText"
             android:layout_width="match_parent" android:layout_height="wrap_content"
             android:text="Write me a professional email..."
-            android:textSize="16sp" android:lineSpacingExtra="2dp" />
+            android:textSize="14sp"
+            android:lineSpacingExtra="2dp"
+            android:maxLines="3"
+            android:ellipsize="end" />
+
+        <!-- Tags -->
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/chipGroupTags"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            app:singleLine="true" />
 
         <LinearLayout
             android:layout_width="match_parent" android:layout_height="wrap_content"
