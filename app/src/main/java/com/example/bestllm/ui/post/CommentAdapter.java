@@ -20,11 +20,25 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.VH> {
         void onVote(Comment c, int value);
     }
 
+    public interface OnEditClick {
+        void onEdit(Comment c);
+    }
+
+    public interface OnDeleteClick {
+        void onDelete(Comment c);
+    }
+
     private final List<Comment> items = new ArrayList<>();
     private final OnVoteClick voteCb;
+    private final OnEditClick editCb;
+    private final OnDeleteClick deleteCb;
+    private final String currentUserId;
 
-    public CommentAdapter(OnVoteClick voteCb) {
+    public CommentAdapter(OnVoteClick voteCb, OnEditClick editCb, OnDeleteClick deleteCb, String currentUserId) {
         this.voteCb = voteCb;
+        this.editCb = editCb;
+        this.deleteCb = deleteCb;
+        this.currentUserId = currentUserId;
     }
 
     public void submit(List<Comment> list) {
@@ -48,6 +62,24 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.VH> {
         h.votes.setText(String.valueOf(c.getNetVotes()));
         h.btnUp.setOnClickListener(v -> voteCb.onVote(c, 1));
         h.btnDown.setOnClickListener(v -> voteCb.onVote(c, -1));
+
+        // Show/hide title
+        if (c.getTitle() != null && !c.getTitle().trim().isEmpty()) {
+            h.title.setText(c.getTitle());
+            h.title.setVisibility(android.view.View.VISIBLE);
+        } else {
+            h.title.setVisibility(android.view.View.GONE);
+        }
+
+        // Show edit/delete buttons only for comment author
+        boolean isAuthor = currentUserId != null && currentUserId.equals(c.getAuthorId());
+        if (isAuthor) {
+            h.layoutActions.setVisibility(android.view.View.VISIBLE);
+            h.btnEdit.setOnClickListener(v -> editCb.onEdit(c));
+            h.btnDelete.setOnClickListener(v -> deleteCb.onDelete(c));
+        } else {
+            h.layoutActions.setVisibility(android.view.View.GONE);
+        }
     }
 
     @Override
@@ -56,14 +88,19 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.VH> {
     }
 
     static class VH extends RecyclerView.ViewHolder {
-        TextView author, body, votes, btnUp, btnDown;
+        TextView author, title, body, votes, btnUp, btnDown, btnEdit, btnDelete;
+        android.view.ViewGroup layoutActions;
         VH(View v) {
             super(v);
             author = v.findViewById(R.id.textAuthor);
+            title  = v.findViewById(R.id.textTitle);
             body   = v.findViewById(R.id.textBody);
             votes  = v.findViewById(R.id.textVotes);
             btnUp  = v.findViewById(R.id.btnUp);
             btnDown= v.findViewById(R.id.btnDown);
+            btnEdit = v.findViewById(R.id.btnEdit);
+            btnDelete = v.findViewById(R.id.btnDelete);
+            layoutActions = v.findViewById(R.id.layoutCommentActions);
         }
     }
 }

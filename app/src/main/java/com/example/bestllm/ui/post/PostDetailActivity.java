@@ -59,7 +59,7 @@ public class PostDetailActivity extends AppCompatActivity {
     private RecyclerView recyclerComments;
     private CommentAdapter commentAdapter;
     private MaterialButton btnUpvote, btnDownvote, btnSubmitComment;
-    private TextInputEditText editCommentBody;
+    private TextInputEditText editCommentTitle, editCommentBody;
 
 
 //    @Override
@@ -130,18 +130,24 @@ public class PostDetailActivity extends AppCompatActivity {
         btnUpvote         = findViewById(R.id.btnUpvote);
         btnDownvote       = findViewById(R.id.btnDownvote);
         btnSubmitComment  = findViewById(R.id.btnSubmitComment);
+        editCommentTitle  = findViewById(R.id.editCommentTitle);
         editCommentBody   = findViewById(R.id.editCommentBody);
 
         if (recyclerComments != null) {
             recyclerComments.setLayoutManager(new LinearLayoutManager(this));
-            commentAdapter = new CommentAdapter((c, value) -> {
-                if (!ensureReadyForVoting()) return;
-                voteRepo.voteComment(postId, c.getCommentId(), currentUserId(), value,
-                        new VoteRepository.VoidCallback() {
-                            @Override public void onSuccess() { refreshComments(); }
-                            @Override public void onError(String e) { Toast.makeText(PostDetailActivity.this, e, Toast.LENGTH_SHORT).show(); }
-                        });
-            });
+            commentAdapter = new CommentAdapter(
+                    (c, value) -> {
+                        if (!ensureReadyForVoting()) return;
+                        voteRepo.voteComment(postId, c.getCommentId(), currentUserId(), value,
+                                new VoteRepository.VoidCallback() {
+                                    @Override public void onSuccess() { refreshComments(); }
+                                    @Override public void onError(String e) { Toast.makeText(PostDetailActivity.this, e, Toast.LENGTH_SHORT).show(); }
+                                });
+                    },
+                    this::handleEditComment,
+                    this::handleDeleteComment,
+                    currentUserId()
+            );
             recyclerComments.setAdapter(commentAdapter);
         }
     }
@@ -257,18 +263,20 @@ public class PostDetailActivity extends AppCompatActivity {
         }
         if (btnSubmitComment != null) {
             btnSubmitComment.setOnClickListener(v -> {
+                String title = editCommentTitle != null ? String.valueOf(editCommentTitle.getText()).trim() : "";
                 String body = String.valueOf(editCommentBody.getText()).trim();
                 if (body.isEmpty()) {
                     Toast.makeText(this, "Comment cannot be empty", Toast.LENGTH_SHORT).show();
                     return;
                 }
                 if (!ensureReadyForVoting()) return;
-                commentRepo.addComment(postId, currentUserId(), currentUserName(), null, body,
+                String finalTitle = title.isEmpty() ? null : title;
+                commentRepo.addComment(postId, currentUserId(), currentUserName(), finalTitle, body,
                         new CommentRepository.CommentCallback() {
                             @Override public void onSuccess(Comment c) {
+                                if (editCommentTitle != null) editCommentTitle.setText("");
                                 editCommentBody.setText("");
                                 refreshComments();
-                                // We already have currentPost; if you want to re-fetch for counts:
                                 refreshPost();
                             }
                             @Override public void onError(String e) {
@@ -421,6 +429,72 @@ public class PostDetailActivity extends AppCompatActivity {
             // Reload the post to show updated data
             loadPost();
         }
+    }
+
+    private void handleEditComment(Comment comment) {
+        // Create a dialog for editing comment
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_edit_comment, null);
+        TextInputEditText editTitle = dialogView.findViewById(R.id.editCommentTitle);
+        TextInputEditText editBody = dialogView.findViewById(R.id.editCommentBody);
+
+        // Pre-fill with current values
+        if (comment.getTitle() != null) {
+            editTitle.setText(comment.getTitle());
+        }
+        editBody.setText(comment.getBody());
+
+        new AlertDialog.Builder(this)
+                .setTitle("Edit Comment")
+                .setView(dialogView)
+                .setPositiveButton("Save", (dialog, which) -> {
+                    String newTitle = String.valueOf(editTitle.getText()).trim();
+                    String newBody = String.valueOf(editBody.getText()).trim();
+                    if (newBody.isEmpty()) {
+                        Toast.makeText(this, "Comment body cannot be empty", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    String finalTitle = newTitle.isEmpty() ? null : newTitle;
+                    commentRepo.editComment(postId, comment.getCommentId(), finalTitle, newBody,
+                            new CommentRepository.CommentCallback() {
+                                @Override
+                                public void onSuccess(Comment c) {
+                                    refreshComments();
+                                    refreshPost();
+                                    Toast.makeText(PostDetailActivity.this, "Comment updated", Toast.LENGTH_SHORT).show();
+                                }
+
+                                @Override
+                                public void onError(String e) {
+                                    Toast.makeText(PostDetailActivity.this, e, Toast.LENGTH_SHORT).show();
+                                }
+                            });
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void handleDeleteComment(Comment comment) {
+        new AlertDialog.Builder(this)
+                .setTitle("Delete Comment")
+                .setMessage("Are you sure you want to delete this comment? This action cannot be undone.")
+                .setPositiveButton("Delete", (dialog, which) -> {
+                    commentRepo.deleteComment(postId, comment.getCommentId(),
+                            new CommentRepository.VoidCallback() {
+                                @Override
+                                public void onSuccess() {
+                                    refreshComments();
+                                    refreshPost();
+                                    Toast.makeText(PostDetailActivity.this, "Comment deleted", Toast.LENGTH_SHORT).show();
+                                }
+
+                                @Override
+                                public void onError(String e) {
+                                    Toast.makeText(PostDetailActivity.this, e, Toast.LENGTH_SHORT).show();
+                                }
+                            });
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
     }
 }
 
