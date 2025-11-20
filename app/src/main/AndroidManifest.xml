@@ -40,6 +40,12 @@
             android:name=".ui.profile.ProfileActivity"
             android:exported="false" />
 
+        <!-- Edit Profile Activity -->
+        <activity
+            android:name=".ui.profile.EditProfileActivity"
+            android:exported="false"
+            android:parentActivityName=".ui.profile.ProfileActivity" />
+
         <!-- Post Activities -->
         <activity
             android:name=".ui.post.CreatePostActivity"

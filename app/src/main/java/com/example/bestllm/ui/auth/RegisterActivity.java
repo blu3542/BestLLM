@@ -13,7 +13,7 @@ import com.google.android.material.textfield.TextInputEditText;
 import com.example.bestllm.R;
 import com.example.bestllm.data.AuthRepository;
 import com.example.bestllm.models.User;
-import com.example.bestllm.ui.home.HomeActivity;
+import com.example.bestllm.ui.profile.EditProfileActivity;
 import com.example.bestllm.utils.SessionManager;
 
 public class RegisterActivity extends AppCompatActivity {
@@ -81,7 +81,7 @@ public class RegisterActivity extends AppCompatActivity {
                 showLoading(false);
                 sessionManager.createSession(user.getUserId(), user.getName(), user.getEmail());
                 Toast.makeText(RegisterActivity.this, "Welcome to BestLLM, " + user.getName() + "!", Toast.LENGTH_SHORT).show();
-                navigateToHome();
+                navigateToProfileSetup();
             }
 
             @Override
@@ -97,8 +97,9 @@ public class RegisterActivity extends AppCompatActivity {
         buttonRegister.setEnabled(!show);
     }
 
-    private void navigateToHome() {
-        Intent intent = new Intent(this, HomeActivity.class);
+    private void navigateToProfileSetup() {
+        Intent intent = new Intent(this, EditProfileActivity.class);
+        intent.putExtra("SETUP_MODE", true);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
         finish();

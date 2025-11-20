@@ -9,6 +9,11 @@
         app:showAsAction="ifRoom" />
 
     <item
+        android:id="@+id/action_profile"
+        android:title="My Profile"
+        app:showAsAction="never" />
+
+    <item
         android:id="@+id/action_my_posts"
         android:title="My Posts"
         app:showAsAction="never" />

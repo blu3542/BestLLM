@@ -1,15 +1,19 @@
 package com.example.bestllm.utils;
 
-import android.util.Patterns;
+import java.util.regex.Pattern;
 
 public class Validators {
+
+    private static final Pattern EMAIL_PATTERN = Pattern.compile(
+            "[a-zA-Z0-9+._%-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}"
+    );
 
     public static boolean isValidUSCEmail(String email) {
         if (email == null || email.isEmpty()) {
             return false;
         }
         return email.toLowerCase().endsWith("@usc.edu") &&
-                Patterns.EMAIL_ADDRESS.matcher(email).matches();
+                EMAIL_PATTERN.matcher(email).matches();
     }
 
     public static boolean isValidPassword(String password) {

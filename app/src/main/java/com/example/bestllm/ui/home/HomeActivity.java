@@ -35,6 +35,7 @@ import com.example.bestllm.models.Post;
 import com.example.bestllm.ui.auth.LoginActivity;
 import com.example.bestllm.ui.post.CreatePostActivity;
 import com.example.bestllm.ui.post.PostDetailActivity;
+import com.example.bestllm.ui.profile.ProfileActivity;
 import com.example.bestllm.utils.SessionManager;
 
 import java.util.ArrayList;
@@ -393,6 +394,9 @@ public class HomeActivity extends AppCompatActivity implements PostAdapter.OnPos
 
         if (id == R.id.action_refresh) {
             loadPosts();
+            return true;
+        } else if (id == R.id.action_profile) {
+            startActivity(new Intent(this, ProfileActivity.class));
             return true;
         } else if (id == R.id.action_my_posts) {
             showMyPosts();

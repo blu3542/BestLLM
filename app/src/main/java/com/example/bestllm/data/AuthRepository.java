@@ -157,4 +157,58 @@ public class AuthRepository {
                     callback.onError("Error fetching profile: " + e.getMessage());
                 });
     }
+
+    public interface PasswordResetCallback {
+        void onSuccess();
+        void onError(String error);
+    }
+
+    public void resetPassword(String email, PasswordResetCallback callback) {
+        if (!Validators.isValidUSCEmail(email)) {
+            callback.onError("Please use a valid USC email (@usc.edu)");
+            return;
+        }
+
+        mAuth.sendPasswordResetEmail(email)
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        Log.d(TAG, "Password reset email sent to " + email);
+                        callback.onSuccess();
+                    } else {
+                        String error = task.getException() != null ?
+                                task.getException().getMessage() : "Failed to send reset email";
+                        Log.e(TAG, "Password reset failed", task.getException());
+                        callback.onError(error);
+                    }
+                });
+    }
+
+    public interface ProfileUpdateCallback {
+        void onSuccess();
+        void onError(String error);
+    }
+
+    public void updateUserProfile(User updatedUser, ProfileUpdateCallback callback) {
+        if (updatedUser == null || updatedUser.getUserId() == null) {
+            callback.onError("Invalid user data");
+            return;
+        }
+
+        if (!Validators.isValidName(updatedUser.getName())) {
+            callback.onError("Please enter a valid name");
+            return;
+        }
+
+        db.collection("users")
+                .document(updatedUser.getUserId())
+                .set(updatedUser)
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "User profile updated successfully");
+                    callback.onSuccess();
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error updating user profile", e);
+                    callback.onError("Failed to update profile: " + e.getMessage());
+                });
+    }
 }

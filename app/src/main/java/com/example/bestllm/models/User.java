@@ -7,6 +7,8 @@ public class User {
     private String name;
     private String studentId;
     private String email;
+    private String department;
+    private String school;
     private String bio;
     private Timestamp birthDate;
     private int reputationScore;
@@ -28,6 +30,12 @@ public class User {
 
     public String getStudentId() { return studentId; }
     public void setStudentId(String studentId) { this.studentId = studentId; }
+
+    public String getDepartment() { return department; }
+    public void setDepartment(String department) { this.department = department; }
+
+    public String getSchool() { return school; }
+    public void setSchool(String school) { this.school = school; }
 
     // Getters and Setters
     public String getUserId() {
