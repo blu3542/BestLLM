@@ -22,6 +22,9 @@ android {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
+        debug {
+            testCoverageEnabled true
+        }
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_11
@@ -37,6 +40,8 @@ dependencies {
     implementation libs.constraintlayout
     implementation libs.swiperefreshlayout
     testImplementation libs.junit
+    testImplementation libs.mockito.core
+    testImplementation libs.mockito.junit.jupiter
     androidTestImplementation libs.ext.junit
     androidTestImplementation libs.espresso.core
     implementation platform(libs.firebase.bom)
