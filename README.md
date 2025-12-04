@@ -88,6 +88,7 @@ This section assumes the project is already set up in Android Studio with a devi
    - Enter a **Tag** specifying the LLM being discussed (required, e.g., `gpt-4`, `claude-3`).
 3. Tap the **Create** or **Publish** button.
 4. If any required field is missing, read and fix the error messages (for example, “Title is required”).
+
 5. After successful creation, you should be taken back to a list where your post now appears.
 
 ### 4.3 Editing an Existing Post
@@ -186,7 +187,8 @@ This section assumes the project is already set up in Android Studio with a devi
    - **Title**
    - Brief **description** (if available)
    - **LLM tag(s)**
-   - Author and timestamp
+   - Author and timestamp  
+   - A **bookmark icon** indicating whether the prompt is saved (outlined = not saved, filled = saved)
 3. Tap any prompt to open a detailed view (if your UI has a detail screen for prompts).
 
 ### 8.3 Creating a New Prompt
@@ -215,6 +217,14 @@ This section assumes the project is already set up in Android Studio with a devi
 2. Tap the **Delete** icon or menu option for that prompt.
 3. Confirm deletion in the dialog if one appears.
 4. Verify that the prompt is removed from the list.
+
+### 8.6 Saving / Bookmarking Prompts
+
+1. On the **Prompts List** screen, locate the **bookmark icon** on a prompt card.
+2. Tap the **bookmark icon**:
+   - If the prompt was **not saved**, it will be saved to your account and the icon should change to the **filled** state.
+   - If the prompt was **already saved**, tapping again will **unsave** it and the icon should return to the **outlined** state.
+3. Saved prompts are stored per user, so they persist across sessions and devices as long as you log in with the same account.
 
 ---
 
@@ -246,12 +256,22 @@ This section assumes the project is already set up in Android Studio with a devi
 
 ---
 
-## 10. Searching Prompts by Tag
+## 10. Searching and Filtering Prompts (Tags + Saved)
+
+### 10.1 Searching Prompts by Tag
 
 1. Navigate to the **Prompt Sharing** section (see 8.1).
 2. On the **Prompts List** screen, look for a **search bar**, **filter field**, or **tag selector**.
 3. In that search field, type an **LLM tag** (e.g., `claude-3`, `gpt-4`) or choose it from a dropdown if available.
 4. Trigger the search or filter (by pressing enter, search button, or filter button, depending on the UI).
 5. The list of prompts will update to show only those prompts associated with the selected tag.
+
+### 10.2 Viewing Only Saved Prompts
+
+1. While on the **Prompts List** screen, look for a **Saved** filter (such as a toggle, chip, or menu option).
+2. Enable the **Saved** filter:
+   - The list will update to show **only the prompts you have bookmarked**.
+3. Disable the **Saved** filter to return to viewing **all prompts**.
+4. You can combine this with other filters/search (depending on your UI) to quickly find saved prompts for a particular tag or use case.
 
 ---
