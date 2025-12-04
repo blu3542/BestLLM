@@ -27,15 +27,25 @@ public class PromptAdapter extends RecyclerView.Adapter<PromptAdapter.VH> {
         void onShare(Prompt p);
         void onEdit(Prompt p);
         void onDelete(Prompt p);
+        void onBookmark(Prompt p);
     }
 
     private final List<Prompt> items = new ArrayList<>();
     private final Actions actions;
     private final String currentUserId;
+    private final java.util.Set<String> savedPromptIds = new java.util.HashSet<>();
 
     public PromptAdapter(String currentUserId, Actions actions) {
         this.currentUserId = currentUserId;
         this.actions = actions;
+    }
+
+    public void setSavedPromptIds(java.util.Set<String> savedIds) {
+        this.savedPromptIds.clear();
+        if (savedIds != null) {
+            this.savedPromptIds.addAll(savedIds);
+        }
+        notifyDataSetChanged();
     }
 
     public void submit(List<Prompt> list) {
@@ -95,6 +105,22 @@ public class PromptAdapter extends RecyclerView.Adapter<PromptAdapter.VH> {
 
         h.btnEdit.setOnClickListener(v -> actions.onEdit(p));
         h.btnDelete.setOnClickListener(v -> actions.onDelete(p));
+
+        // Bookmark button - only show if user is logged in
+        boolean isLoggedIn = currentUserId != null && !currentUserId.isEmpty();
+        h.btnBookmark.setVisibility(isLoggedIn ? View.VISIBLE : View.GONE);
+        
+        // Update bookmark icon based on saved state
+        boolean isSaved = savedPromptIds.contains(p.getPromptId());
+        h.btnBookmark.setImageResource(isSaved 
+            ? android.R.drawable.star_big_on 
+            : android.R.drawable.star_big_off);
+        
+        h.btnBookmark.setOnClickListener(v -> {
+            if (actions != null) {
+                actions.onBookmark(p);
+            }
+        });
     }
 
     @Override
@@ -103,7 +129,7 @@ public class PromptAdapter extends RecyclerView.Adapter<PromptAdapter.VH> {
     static class VH extends RecyclerView.ViewHolder {
         TextView title, text, author, date;
         ChipGroup chipGroupTags;
-        ImageButton btnShare, btnEdit, btnDelete;
+        ImageButton btnBookmark, btnShare, btnEdit, btnDelete;
         VH(@NonNull View v) {
             super(v);
             title         = v.findViewById(R.id.tvPromptTitle);
@@ -111,6 +137,7 @@ public class PromptAdapter extends RecyclerView.Adapter<PromptAdapter.VH> {
             chipGroupTags = v.findViewById(R.id.chipGroupTags);
             author        = v.findViewById(R.id.tvAuthorName);
             date          = v.findViewById(R.id.tvDate);
+            btnBookmark   = v.findViewById(R.id.btnBookmarkPrompt);
             btnShare      = v.findViewById(R.id.btnSharePrompt);
             btnEdit       = v.findViewById(R.id.btnEditPrompt);
             btnDelete     = v.findViewById(R.id.btnDeletePrompt);

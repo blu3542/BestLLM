@@ -61,6 +61,13 @@
                 android:orientation="horizontal">
 
                 <ImageButton
+                    android:id="@+id/btnBookmarkPrompt"
+                    android:layout_width="40dp" android:layout_height="40dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="Save prompt"
+                    android:src="@android:drawable/star_big_off" />
+
+                <ImageButton
                     android:id="@+id/btnSharePrompt"
                     android:layout_width="40dp" android:layout_height="40dp"
                     android:background="?attr/selectableItemBackgroundBorderless"

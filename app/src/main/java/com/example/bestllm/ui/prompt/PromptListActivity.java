@@ -7,18 +7,25 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.lifecycle.LifecycleOwner;
+import androidx.lifecycle.Observer;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.bestllm.R;
 import com.example.bestllm.data.PromptRepository;
+import com.example.bestllm.data.SavedPromptRepository;
 import com.example.bestllm.models.Prompt;
 import com.example.bestllm.utils.SessionManager;
+import com.google.android.material.chip.Chip;
+import com.google.android.material.chip.ChipGroup;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.progressindicator.CircularProgressIndicator;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class PromptListActivity extends AppCompatActivity implements PromptAdapter.Actions {
 
@@ -26,9 +33,15 @@ public class PromptListActivity extends AppCompatActivity implements PromptAdapt
     private PromptAdapter adapter;
     private FloatingActionButton fab;
     private CircularProgressIndicator progress;
+    private ChipGroup chipGroupFilters;
+    private Chip chipSaved;
 
     private final PromptRepository promptRepo = new PromptRepository();
+    private final SavedPromptRepository savedPromptRepo = new SavedPromptRepository();
     private SessionManager session;
+    
+    private List<Prompt> allPrompts = new ArrayList<>();
+    private boolean showSavedOnly = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,6 +68,8 @@ public class PromptListActivity extends AppCompatActivity implements PromptAdapt
         recycler = findViewById(R.id.rvPrompts);
         progress = findViewById(R.id.progressBar);
         fab = findViewById(R.id.fabSharePrompt);
+        chipGroupFilters = findViewById(R.id.chipGroupFilters);
+        chipSaved = findViewById(R.id.chipSaved);
 
         recycler.setLayoutManager(new LinearLayoutManager(this));
         adapter = new PromptAdapter(session.getUserId(), this);
@@ -62,6 +77,21 @@ public class PromptListActivity extends AppCompatActivity implements PromptAdapt
 
         fab.setOnClickListener(v ->
                 startActivity(new Intent(this, CreatePromptActivity.class)));
+
+        // Setup Saved filter chip
+        chipSaved.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            showSavedOnly = isChecked;
+            filterAndDisplayPrompts();
+        });
+
+        // Observe saved prompt IDs if user is logged in
+        String userId = session.getUserId();
+        if (userId != null && !userId.isEmpty()) {
+            savedPromptRepo.observeSavedPromptIds(userId).observe(this, savedIds -> {
+                adapter.setSavedPromptIds(savedIds);
+                filterAndDisplayPrompts();
+            });
+        }
     }
 
     private void loadPrompts() {
@@ -69,13 +99,40 @@ public class PromptListActivity extends AppCompatActivity implements PromptAdapt
         promptRepo.getAllPromptsRecent(new PromptRepository.PromptListCallback() {
             @Override public void onSuccess(List<Prompt> prompts) {
                 showLoading(false);
-                adapter.submit(prompts != null ? prompts : new ArrayList<>());
+                allPrompts = prompts != null ? prompts : new ArrayList<>();
+                filterAndDisplayPrompts();
             }
             @Override public void onError(String error) {
                 showLoading(false);
                 Toast.makeText(PromptListActivity.this, error, Toast.LENGTH_LONG).show();
             }
         });
+    }
+
+    private void filterAndDisplayPrompts() {
+        if (showSavedOnly) {
+            // Show only saved prompts
+            String userId = session.getUserId();
+            if (userId != null && !userId.isEmpty()) {
+                savedPromptRepo.getSavedPromptObjects(userId, new PromptRepository.PromptListCallback() {
+                    @Override
+                    public void onSuccess(List<Prompt> savedPrompts) {
+                        adapter.submit(savedPrompts != null ? savedPrompts : new ArrayList<>());
+                    }
+
+                    @Override
+                    public void onError(String error) {
+                        Toast.makeText(PromptListActivity.this, error, Toast.LENGTH_SHORT).show();
+                        adapter.submit(new ArrayList<>());
+                    }
+                });
+            } else {
+                adapter.submit(new ArrayList<>());
+            }
+        } else {
+            // Show all prompts
+            adapter.submit(allPrompts);
+        }
     }
 
     private void showLoading(boolean show) {
@@ -125,10 +182,40 @@ public class PromptListActivity extends AppCompatActivity implements PromptAdapt
     }
 
     @Override
+    public void onBookmark(Prompt p) {
+        String userId = session.getUserId();
+        if (userId == null || userId.isEmpty()) {
+            Toast.makeText(this, "Please log in to save prompts", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        savedPromptRepo.toggleSavedPrompt(userId, p.getPromptId(), new SavedPromptRepository.ToggleCallback() {
+            @Override
+            public void onSuccess(boolean isSaved) {
+                String message = isSaved ? "Prompt saved" : "Prompt unsaved";
+                Toast.makeText(PromptListActivity.this, message, Toast.LENGTH_SHORT).show();
+                // The LiveData observer will automatically update the UI
+            }
+
+            @Override
+            public void onError(String error) {
+                Toast.makeText(PromptListActivity.this, error, Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    @Override
     protected void onResume() {
         super.onResume();
         // Reload to reflect newly created/edited prompts
         loadPrompts();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        // Stop observing saved prompts to prevent memory leaks
+        savedPromptRepo.stopObserving();
     }
 
     @Override

@@ -40,6 +40,8 @@ dependencies {
     implementation libs.activity
     implementation libs.constraintlayout
     implementation libs.swiperefreshlayout
+    implementation libs.lifecycle.livedata
+    implementation libs.lifecycle.viewmodel
 
     testImplementation libs.junit
     testImplementation libs.mockito.core
